@@ -1,0 +1,7 @@
+import Link from "next/link";
+import { prisma } from "@/lib/prisma";
+export const dynamic = "force-dynamic";
+export default async function EventsPage() {
+  const events = await prisma.event.findMany({ where: { status: "PUBLISHED", startsAt: { gte: new Date() } }, orderBy: { startsAt: "asc" } }).catch(() => []);
+  return <main className="subpage"><header className="subnav"><Link href="/" className="brand"><span className="brand-mark">♞</span>CHESS<span className="cyan">254</span></Link><Link href="/" className="arrow-link">← Home</Link></header><section className="subhero"><div className="section-kicker">AROUND THE CLUB</div><h1>What’s<br/><span>on.</span></h1><p>Club events and tournaments, published by the Chess254 team.</p></section><section className="subcontent single-content">{events.length ? <div className="event-list">{events.map((e) => <Link className="event-row" key={e.id} href={`/events/${e.slug}`}><div className="event-date"><span>{e.startsAt.toLocaleDateString("en-KE", { month: "short" }).toUpperCase()}</span><strong>{e.startsAt.toLocaleDateString("en-KE", { day: "2-digit" })}</strong></div><div className="event-main"><h3>{e.title}</h3><p>{e.location}</p></div><span className="event-price">{Number(e.price) ? `${e.currency} ${Number(e.price).toLocaleString("en-KE")}` : "Free"}</span></Link>)}</div> : <div className="empty-state"><span>♜</span><h3>No upcoming events</h3><p>There are no events on the calendar right now. Check back for the next one.</p></div>}</section></main>;
+}

@@ -1,0 +1,1251 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+// ─── Enums ────────────────────────────────────────────────────────────────
+
+enum Role {
+  SUPER_ADMIN
+  ADMIN
+  COACH
+  MODERATOR
+  MEMBER
+}
+
+enum PlanStatus {
+  DRAFT
+  ACTIVE
+  INACTIVE
+  ARCHIVED
+}
+
+enum RecordStatus {
+  DRAFT
+  ACTIVE
+  INACTIVE
+  ARCHIVED
+}
+
+enum BillingPeriod {
+  DAILY
+  WEEKLY
+  MONTHLY
+  QUARTERLY
+  ANNUAL
+}
+
+enum EntitlementPeriod {
+  WEEK
+  MONTH
+  BILLING_PERIOD
+}
+
+enum MembershipStatus {
+  PENDING
+  ACTIVE
+  EXPIRED
+  CANCELLED
+}
+
+enum BookingStatus {
+  PENDING
+  CONFIRMED
+  CANCELLED
+  COMPLETED
+  NO_SHOW
+  EXPIRED
+}
+
+enum PaymentStatus {
+  PENDING
+  PROCESSING
+  SUCCESS
+  FAILED
+  CANCELLED
+  REFUNDED
+  EXPIRED
+}
+
+enum OrderStatus {
+  PENDING
+  PAID
+  FAILED
+  CANCELLED
+  EXPIRED
+  REFUNDED
+}
+
+enum OrderItemType {
+  MEMBERSHIP
+  BOOKING
+  EVENT
+  SERVICE
+}
+
+enum EventStatus {
+  DRAFT
+  PUBLISHED
+  CANCELLED
+  COMPLETED
+}
+
+enum EventType {
+  TOURNAMENT
+  RAPID_TOURNAMENT
+  BLITZ_TOURNAMENT
+  TRAINING_CAMP
+  HANGOUT
+  KIDS_SESSION
+  EXHIBITION
+  COMMUNITY
+}
+
+enum RegistrationStatus {
+  PENDING
+  CONFIRMED
+  CANCELLED
+  ATTENDED
+  EXPIRED
+}
+
+enum MaterialType {
+  ARTICLE
+  PDF
+  VIDEO
+  STUDY
+  PGN
+  PUZZLE
+  ASSIGNMENT
+}
+
+enum MaterialAccess {
+  PUBLIC
+  MEMBERS
+}
+
+enum ProgressStatus {
+  IN_PROGRESS
+  COMPLETED
+}
+
+enum AssignmentStatus {
+  ASSIGNED
+  SUBMITTED
+  REVIEWED
+  CANCELLED
+}
+
+enum PuzzleDifficulty {
+  BEGINNER
+  EASY
+  MEDIUM
+  HARD
+  EXPERT
+}
+
+enum PostKind {
+  DISCUSSION
+  QUESTION
+  GAME
+  ACHIEVEMENT
+  TOURNAMENT
+}
+
+enum ContentStatus {
+  VISIBLE
+  HIDDEN
+  REMOVED
+}
+
+enum ReportStatus {
+  OPEN
+  RESOLVED
+  DISMISSED
+}
+
+enum TokenType {
+  EMAIL_VERIFY
+  PASSWORD_RESET
+}
+
+enum ServicePurchaseStatus {
+  PENDING
+  ACTIVE
+  REDEEMED
+  EXPIRED
+  CANCELLED
+}
+
+enum DeliveryStatus {
+  QUEUED
+  SENT
+  FAILED
+  SKIPPED
+}
+
+enum NotificationChannel {
+  IN_APP
+  EMAIL
+  SMS
+}
+
+// ─── Identity & access ────────────────────────────────────────────────────
+
+model User {
+  id               String    @id @default(cuid())
+  email            String    @unique
+  passwordHash     String
+  name             String
+  phone            String?
+  role             Role      @default(MEMBER)
+  emailVerifiedAt  DateTime?
+  suspendedAt      DateTime?
+  suspensionReason String?
+  lastLoginAt      DateTime?
+  deletedAt        DateTime?
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+
+  memberProfile       MemberProfile?
+  coachProfile        CoachProfile?
+  sessions            Session[]
+  tokens              VerificationToken[]
+  memberships         Membership[]
+  bookings            Booking[]            @relation("MemberBookings")
+  eventRegistrations  EventRegistration[]
+  servicePurchases    ServicePurchase[]
+  orders              Order[]
+  payments            Payment[]
+  learningProgress    LearningProgress[]
+  bookmarks           LearningBookmark[]
+  assignmentsReceived LearningAssignment[] @relation("AssignmentMember")
+  puzzleAttempts      PuzzleAttempt[]
+  posts               CommunityPost[]
+  comments            CommunityComment[]
+  likes               CommunityLike[]
+  follows             CommunityFollow[]
+  reports             CommunityReport[]    @relation("Reporter")
+  notifications       Notification[]
+  auditLogs           AuditLog[]
+  coachLinks          CoachMember[]        @relation("CoachMemberMember")
+
+  @@index([role])
+  @@index([createdAt])
+}
+
+model Permission {
+  id          String           @id @default(cuid())
+  key         String           @unique
+  description String
+  group       String
+  roles       RolePermission[]
+}
+
+model RolePermission {
+  role         Role
+  permissionId String
+  permission   Permission @relation(fields: [permissionId], references: [id], onDelete: Cascade)
+
+  @@id([role, permissionId])
+}
+
+model Session {
+  id        String   @id @default(cuid())
+  tokenHash String   @unique
+  userId    String
+  expiresAt DateTime
+  userAgent String?
+  ipAddress String?
+  createdAt DateTime @default(now())
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, expiresAt])
+}
+
+model VerificationToken {
+  id        String    @id @default(cuid())
+  userId    String
+  type      TokenType
+  tokenHash String    @unique
+  expiresAt DateTime
+  usedAt    DateTime?
+  createdAt DateTime  @default(now())
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, type, createdAt])
+}
+
+model RateLimit {
+  key     String   @id
+  count   Int      @default(0)
+  resetAt DateTime
+
+  @@index([resetAt])
+}
+
+model Counter {
+  key   String @id
+  value Int    @default(0)
+}
+
+model MemberProfile {
+  id               String    @id @default(cuid())
+  userId           String    @unique
+  avatarUrl        String?
+  bio              String?   @db.Text
+  chessLevel       String?
+  rating           Int?
+  lichessUsername  String?
+  chesscomUsername String?
+  puzzleRating     Int       @default(1200)
+  puzzleStreak     Int       @default(0)
+  puzzleBestStreak Int       @default(0)
+  lastPuzzleDay    DateTime? @db.Date
+  user             User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+// ─── Locations & hours ────────────────────────────────────────────────────
+
+model Location {
+  id           String        @id @default(cuid())
+  name         String
+  slug         String        @unique
+  address      String
+  city         String
+  description  String?       @db.Text
+  mapUrl       String?
+  latitude     Decimal?      @db.Decimal(9, 6)
+  longitude    Decimal?      @db.Decimal(9, 6)
+  phone        String?
+  email        String?
+  timezone     String        @default("Africa/Nairobi")
+  openingDate  DateTime?
+  isPrimary    Boolean       @default(false)
+  active       Boolean       @default(true)
+  position     Int           @default(0)
+  openingHours OpeningHour[]
+  closures     ClosureDate[]
+  bookings     Booking[]
+  events       Event[]
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
+}
+
+model OpeningHour {
+  id         String   @id @default(cuid())
+  locationId String
+  weekday    Int // 0 = Sunday … 6 = Saturday
+  opensAt    String // HH:MM local time
+  closesAt   String // HH:MM local time
+  closed     Boolean  @default(false)
+  note       String?
+  location   Location @relation(fields: [locationId], references: [id], onDelete: Cascade)
+
+  @@unique([locationId, weekday])
+}
+
+model ClosureDate {
+  id         String   @id @default(cuid())
+  locationId String
+  date       DateTime @db.Date
+  reason     String?
+  location   Location @relation(fields: [locationId], references: [id], onDelete: Cascade)
+
+  @@unique([locationId, date])
+}
+
+// ─── Memberships ──────────────────────────────────────────────────────────
+
+model MembershipPlan {
+  id                   String              @id @default(cuid())
+  name                 String
+  slug                 String              @unique
+  audience             String?
+  description          String              @db.Text
+  price                Decimal             @db.Decimal(12, 2)
+  currency             String              @default("KES")
+  billingPeriod        BillingPeriod
+  accessStartTime      String? // HH:MM local, null = opening time
+  accessEndTime        String? // HH:MM local, null = closing time
+  canBookCoaching      Boolean             @default(true)
+  learningAccess       Boolean             @default(true)
+  eventDiscountPercent Int                 @default(0)
+  ctaLabel             String?
+  priority             Int                 @default(0)
+  featured             Boolean             @default(false)
+  status               PlanStatus          @default(DRAFT)
+  seoTitle             String?
+  seoDescription       String?
+  features             MembershipFeature[]
+  entitlements         PlanEntitlement[]
+  memberships          Membership[]
+  sessionTypes         SessionType[]       @relation("SessionTypePlans")
+  orderItems           OrderItem[]
+  createdAt            DateTime            @default(now())
+  updatedAt            DateTime            @updatedAt
+
+  @@index([status, priority])
+}
+
+model MembershipFeature {
+  id       String         @id @default(cuid())
+  planId   String
+  label    String
+  position Int            @default(0)
+  plan     MembershipPlan @relation(fields: [planId], references: [id], onDelete: Cascade)
+
+  @@index([planId, position])
+}
+
+/// Sessions included in a plan at no extra charge (e.g. one lesson per week).
+model PlanEntitlement {
+  id            String            @id @default(cuid())
+  planId        String
+  sessionTypeId String
+  quantity      Int
+  period        EntitlementPeriod @default(WEEK)
+  plan          MembershipPlan    @relation(fields: [planId], references: [id], onDelete: Cascade)
+  sessionType   SessionType       @relation(fields: [sessionTypeId], references: [id], onDelete: Cascade)
+
+  @@unique([planId, sessionTypeId])
+}
+
+model Membership {
+  id               String              @id @default(cuid())
+  userId           String
+  planId           String
+  status           MembershipStatus    @default(PENDING)
+  startsAt         DateTime?
+  expiresAt        DateTime?
+  expiryReminderAt DateTime?
+  cancelledAt      DateTime?
+  createdAt        DateTime            @default(now())
+  updatedAt        DateTime            @updatedAt
+  user             User                @relation(fields: [userId], references: [id])
+  plan             MembershipPlan      @relation(fields: [planId], references: [id])
+  payments         MembershipPayment[]
+  renewals         MembershipRenewal[]
+
+  @@index([userId, status])
+  @@index([status, expiresAt])
+}
+
+model MembershipPayment {
+  id           String     @id @default(cuid())
+  membershipId String
+  paymentId    String     @unique
+  orderItemId  String     @unique
+  periodStart  DateTime
+  periodEnd    DateTime
+  createdAt    DateTime   @default(now())
+  membership   Membership @relation(fields: [membershipId], references: [id])
+  payment      Payment    @relation(fields: [paymentId], references: [id])
+  orderItem    OrderItem  @relation(fields: [orderItemId], references: [id])
+}
+
+model MembershipRenewal {
+  id             String     @id @default(cuid())
+  membershipId   String
+  paymentId      String     @unique
+  previousExpiry DateTime?
+  newExpiry      DateTime
+  createdAt      DateTime   @default(now())
+  membership     Membership @relation(fields: [membershipId], references: [id])
+  payment        Payment    @relation(fields: [paymentId], references: [id])
+}
+
+// ─── Coaching & bookings ──────────────────────────────────────────────────
+
+model CoachProfile {
+  id              String               @id @default(cuid())
+  userId          String               @unique
+  slug            String               @unique
+  title           String?
+  headline        String?
+  bio             String               @db.Text
+  specialties     String[]
+  imageUrl        String?
+  rating          Int?
+  position        Int                  @default(0)
+  isActive        Boolean              @default(true)
+  acceptsBookings Boolean              @default(true)
+  user            User                 @relation(fields: [userId], references: [id], onDelete: Cascade)
+  availability    CoachAvailability[]
+  timeOff         CoachTimeOff[]
+  sessionTypes    SessionType[]        @relation("CoachSessionTypes")
+  bookings        Booking[]
+  assignments     LearningAssignment[]
+  members         CoachMember[]
+  createdAt       DateTime             @default(now())
+  updatedAt       DateTime             @updatedAt
+
+  @@index([isActive, position])
+}
+
+model CoachMember {
+  coachId   String
+  memberId  String
+  createdAt DateTime     @default(now())
+  coach     CoachProfile @relation(fields: [coachId], references: [id], onDelete: Cascade)
+  member    User         @relation("CoachMemberMember", fields: [memberId], references: [id], onDelete: Cascade)
+
+  @@id([coachId, memberId])
+  @@index([memberId])
+}
+
+model SessionType {
+  id                 String            @id @default(cuid())
+  name               String
+  slug               String            @unique
+  description        String            @db.Text
+  durationMinutes    Int
+  price              Decimal           @db.Decimal(12, 2)
+  currency           String            @default("KES")
+  capacity           Int               @default(1)
+  membershipRequired Boolean           @default(false)
+  minNoticeHours     Int?
+  maxAdvanceDays     Int?
+  cancellationHours  Int?
+  cancellationPolicy String?           @db.Text
+  position           Int               @default(0)
+  status             RecordStatus      @default(DRAFT)
+  allowedPlans       MembershipPlan[]  @relation("SessionTypePlans")
+  coaches            CoachProfile[]    @relation("CoachSessionTypes")
+  entitlements       PlanEntitlement[]
+  bookings           Booking[]
+  createdAt          DateTime          @default(now())
+  updatedAt          DateTime          @updatedAt
+
+  @@index([status, position])
+}
+
+model CoachAvailability {
+  id        String       @id @default(cuid())
+  coachId   String
+  weekday   Int // 0 = Sunday … 6 = Saturday
+  startTime String // HH:MM local
+  endTime   String // HH:MM local
+  coach     CoachProfile @relation(fields: [coachId], references: [id], onDelete: Cascade)
+
+  @@index([coachId, weekday])
+}
+
+model CoachTimeOff {
+  id        String       @id @default(cuid())
+  coachId   String
+  startsAt  DateTime
+  endsAt    DateTime
+  reason    String?
+  createdAt DateTime     @default(now())
+  coach     CoachProfile @relation(fields: [coachId], references: [id], onDelete: Cascade)
+
+  @@index([coachId, startsAt, endsAt])
+}
+
+model Booking {
+  id              String                 @id @default(cuid())
+  reference       String                 @unique
+  memberId        String
+  coachId         String
+  sessionTypeId   String
+  locationId      String?
+  startsAt        DateTime
+  endsAt          DateTime
+  status          BookingStatus          @default(PENDING)
+  price           Decimal                @db.Decimal(12, 2)
+  currency        String
+  usedEntitlement Boolean                @default(false)
+  holdExpiresAt   DateTime?
+  memberNotes     String?                @db.Text
+  coachNotes      String?                @db.Text
+  cancelReason    String?
+  cancelledAt     DateTime?
+  reminderSentAt  DateTime?
+  createdAt       DateTime               @default(now())
+  updatedAt       DateTime               @updatedAt
+  member          User                   @relation("MemberBookings", fields: [memberId], references: [id])
+  coach           CoachProfile           @relation(fields: [coachId], references: [id])
+  sessionType     SessionType            @relation(fields: [sessionTypeId], references: [id])
+  location        Location?              @relation(fields: [locationId], references: [id])
+  orderItem       OrderItem?
+  history         BookingStatusHistory[]
+
+  @@index([coachId, startsAt, endsAt])
+  @@index([memberId, startsAt])
+  @@index([status, startsAt])
+}
+
+model BookingStatusHistory {
+  id        String        @id @default(cuid())
+  bookingId String
+  status    BookingStatus
+  actorId   String?
+  note      String?
+  createdAt DateTime      @default(now())
+  booking   Booking       @relation(fields: [bookingId], references: [id], onDelete: Cascade)
+
+  @@index([bookingId, createdAt])
+}
+
+// ─── Configurable services (day passes etc.) ──────────────────────────────
+
+model Service {
+  id            String            @id @default(cuid())
+  name          String
+  slug          String            @unique
+  description   String            @db.Text
+  price         Decimal           @db.Decimal(12, 2)
+  currency      String            @default("KES")
+  validityHours Int               @default(24)
+  position      Int               @default(0)
+  status        RecordStatus      @default(DRAFT)
+  purchases     ServicePurchase[]
+  orderItems    OrderItem[]
+  createdAt     DateTime          @default(now())
+  updatedAt     DateTime          @updatedAt
+}
+
+model ServicePurchase {
+  id         String                @id @default(cuid())
+  code       String                @unique
+  userId     String
+  serviceId  String
+  status     ServicePurchaseStatus @default(PENDING)
+  validFrom  DateTime?
+  validUntil DateTime?
+  redeemedAt DateTime?
+  createdAt  DateTime              @default(now())
+  user       User                  @relation(fields: [userId], references: [id])
+  service    Service               @relation(fields: [serviceId], references: [id])
+  orderItem  OrderItem?
+
+  @@index([userId, status])
+}
+
+// ─── Events ───────────────────────────────────────────────────────────────
+
+model Event {
+  id                   String              @id @default(cuid())
+  title                String
+  slug                 String              @unique
+  type                 EventType
+  excerpt              String?
+  description          String              @db.Text
+  coverImage           String?
+  startsAt             DateTime
+  endsAt               DateTime
+  locationId           String?
+  venueNote            String?
+  capacity             Int?
+  price                Decimal             @default(0) @db.Decimal(12, 2)
+  memberPrice          Decimal?            @db.Decimal(12, 2)
+  currency             String              @default("KES")
+  registrationDeadline DateTime?
+  registrationOpen     Boolean             @default(true)
+  timeControl          String?
+  format               String?
+  prizeInfo            String?             @db.Text
+  featured             Boolean             @default(false)
+  status               EventStatus         @default(DRAFT)
+  seoTitle             String?
+  seoDescription       String?
+  deletedAt            DateTime?
+  location             Location?           @relation(fields: [locationId], references: [id])
+  registrations        EventRegistration[]
+  orderItems           OrderItem[]
+  createdAt            DateTime            @default(now())
+  updatedAt            DateTime            @updatedAt
+
+  @@index([status, startsAt])
+}
+
+model EventRegistration {
+  id             String             @id @default(cuid())
+  reference      String             @unique
+  eventId        String
+  userId         String
+  status         RegistrationStatus @default(PENDING)
+  price          Decimal            @db.Decimal(12, 2)
+  currency       String
+  holdExpiresAt  DateTime?
+  checkedInAt    DateTime?
+  cancelledAt    DateTime?
+  reminderSentAt DateTime?
+  createdAt      DateTime           @default(now())
+  updatedAt      DateTime           @updatedAt
+  event          Event              @relation(fields: [eventId], references: [id])
+  user           User               @relation(fields: [userId], references: [id])
+  orderItem      OrderItem?
+
+  @@unique([eventId, userId])
+  @@index([eventId, status])
+}
+
+// ─── Learning ─────────────────────────────────────────────────────────────
+
+model LearningCategory {
+  id          String             @id @default(cuid())
+  name        String             @unique
+  slug        String             @unique
+  description String?            @db.Text
+  icon        String?
+  position    Int                @default(0)
+  visible     Boolean            @default(true)
+  materials   LearningMaterial[]
+  createdAt   DateTime           @default(now())
+}
+
+model LearningMaterial {
+  id              String               @id @default(cuid())
+  categoryId      String
+  title           String
+  slug            String               @unique
+  summary         String               @db.Text
+  type            MaterialType
+  coverImage      String?
+  body            String?              @db.Text
+  videoUrl        String?
+  fileUrl         String?
+  pgn             String?              @db.Text
+  level           String?
+  durationMinutes Int?
+  access          MaterialAccess       @default(PUBLIC)
+  downloadable    Boolean              @default(false)
+  position        Int                  @default(0)
+  published       Boolean              @default(false)
+  authorId        String?
+  deletedAt       DateTime?
+  category        LearningCategory     @relation(fields: [categoryId], references: [id])
+  progress        LearningProgress[]
+  bookmarks       LearningBookmark[]
+  assignments     LearningAssignment[]
+  createdAt       DateTime             @default(now())
+  updatedAt       DateTime             @updatedAt
+
+  @@index([published, categoryId])
+}
+
+model LearningProgress {
+  id          String           @id @default(cuid())
+  userId      String
+  materialId  String
+  status      ProgressStatus   @default(IN_PROGRESS)
+  startedAt   DateTime         @default(now())
+  completedAt DateTime?
+  updatedAt   DateTime         @updatedAt
+  user        User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  material    LearningMaterial @relation(fields: [materialId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, materialId])
+  @@index([userId, status])
+}
+
+model LearningBookmark {
+  userId     String
+  materialId String
+  createdAt  DateTime         @default(now())
+  user       User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  material   LearningMaterial @relation(fields: [materialId], references: [id], onDelete: Cascade)
+
+  @@id([userId, materialId])
+}
+
+model LearningAssignment {
+  id           String            @id @default(cuid())
+  coachId      String
+  memberId     String
+  materialId   String?
+  title        String
+  instructions String?           @db.Text
+  dueAt        DateTime?
+  status       AssignmentStatus  @default(ASSIGNED)
+  submission   String?           @db.Text
+  submittedAt  DateTime?
+  feedback     String?           @db.Text
+  reviewedAt   DateTime?
+  createdAt    DateTime          @default(now())
+  updatedAt    DateTime          @updatedAt
+  coach        CoachProfile      @relation(fields: [coachId], references: [id])
+  member       User              @relation("AssignmentMember", fields: [memberId], references: [id])
+  material     LearningMaterial? @relation(fields: [materialId], references: [id], onDelete: SetNull)
+
+  @@index([memberId, status])
+  @@index([coachId, status])
+}
+
+// ─── Puzzles ──────────────────────────────────────────────────────────────
+
+model Puzzle {
+  id          String           @id @default(cuid())
+  title       String
+  description String?          @db.Text
+  fen         String
+  solution    String[] // UCI moves, alternating solver / reply
+  hint        String?
+  theme       String?
+  difficulty  PuzzleDifficulty @default(MEDIUM)
+  rating      Int              @default(1200)
+  published   Boolean          @default(false)
+  attempts    PuzzleAttempt[]
+  createdAt   DateTime         @default(now())
+  updatedAt   DateTime         @updatedAt
+
+  @@index([published, rating])
+}
+
+model PuzzleAttempt {
+  id        String   @id @default(cuid())
+  puzzleId  String
+  userId    String
+  solved    Boolean
+  moves     String[]
+  usedHint  Boolean  @default(false)
+  createdAt DateTime @default(now())
+  puzzle    Puzzle   @relation(fields: [puzzleId], references: [id], onDelete: Cascade)
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, createdAt])
+  @@index([puzzleId, solved])
+}
+
+// ─── Community ────────────────────────────────────────────────────────────
+
+model CommunityPost {
+  id            String             @id @default(cuid())
+  authorId      String
+  kind          PostKind           @default(DISCUSSION)
+  title         String
+  body          String             @db.Text
+  pgn           String?            @db.Text
+  status        ContentStatus      @default(VISIBLE)
+  pinned        Boolean            @default(false)
+  likeCount     Int                @default(0)
+  commentCount  Int                @default(0)
+  moderatedById String?
+  moderatedAt   DateTime?
+  createdAt     DateTime           @default(now())
+  updatedAt     DateTime           @updatedAt
+  author        User               @relation(fields: [authorId], references: [id])
+  comments      CommunityComment[]
+  likes         CommunityLike[]
+  follows       CommunityFollow[]
+  reports       CommunityReport[]
+
+  @@index([status, pinned, createdAt])
+  @@index([authorId, createdAt])
+}
+
+model CommunityComment {
+  id        String            @id @default(cuid())
+  postId    String
+  authorId  String
+  body      String            @db.Text
+  status    ContentStatus     @default(VISIBLE)
+  createdAt DateTime          @default(now())
+  post      CommunityPost     @relation(fields: [postId], references: [id], onDelete: Cascade)
+  author    User              @relation(fields: [authorId], references: [id])
+  reports   CommunityReport[]
+
+  @@index([postId, createdAt])
+}
+
+model CommunityLike {
+  postId    String
+  userId    String
+  createdAt DateTime      @default(now())
+  post      CommunityPost @relation(fields: [postId], references: [id], onDelete: Cascade)
+  user      User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@id([postId, userId])
+}
+
+model CommunityFollow {
+  postId    String
+  userId    String
+  createdAt DateTime      @default(now())
+  post      CommunityPost @relation(fields: [postId], references: [id], onDelete: Cascade)
+  user      User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@id([postId, userId])
+}
+
+model CommunityReport {
+  id           String            @id @default(cuid())
+  reporterId   String
+  postId       String?
+  commentId    String?
+  reason       String
+  status       ReportStatus      @default(OPEN)
+  resolution   String?
+  resolvedById String?
+  resolvedAt   DateTime?
+  createdAt    DateTime          @default(now())
+  reporter     User              @relation("Reporter", fields: [reporterId], references: [id])
+  post         CommunityPost?    @relation(fields: [postId], references: [id], onDelete: Cascade)
+  comment      CommunityComment? @relation(fields: [commentId], references: [id], onDelete: Cascade)
+
+  @@index([status, createdAt])
+}
+
+// ─── CMS ──────────────────────────────────────────────────────────────────
+
+/// Editable copy blocks composed into public pages (hero, highlights, steps, CTAs).
+model ContentBlock {
+  id             String   @id @default(cuid())
+  key            String   @unique
+  page           String
+  eyebrow        String?
+  title          String?
+  highlight      String?
+  body           String?  @db.Text
+  imageUrl       String?
+  ctaLabel       String?
+  ctaHref        String?
+  secondaryLabel String?
+  secondaryHref  String?
+  items          Json? // [{ title, body }]
+  position       Int      @default(0)
+  visible        Boolean  @default(true)
+  updatedAt      DateTime @updatedAt
+
+  @@index([page, position])
+}
+
+model Announcement {
+  id        String    @id @default(cuid())
+  title     String
+  body      String?   @db.Text
+  linkLabel String?
+  linkUrl   String?
+  startsAt  DateTime?
+  endsAt    DateTime?
+  published Boolean   @default(false)
+  position  Int       @default(0)
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+}
+
+model GalleryCategory {
+  id       String         @id @default(cuid())
+  name     String         @unique
+  slug     String         @unique
+  position Int            @default(0)
+  images   GalleryImage[]
+}
+
+model GalleryImage {
+  id         String           @id @default(cuid())
+  title      String
+  caption    String?
+  imageUrl   String
+  alt        String?
+  width      Int?
+  height     Int?
+  categoryId String?
+  position   Int              @default(0)
+  featured   Boolean          @default(false)
+  visible    Boolean          @default(true)
+  deletedAt  DateTime?
+  category   GalleryCategory? @relation(fields: [categoryId], references: [id], onDelete: SetNull)
+  createdAt  DateTime         @default(now())
+  updatedAt  DateTime         @updatedAt
+
+  @@index([visible, position])
+}
+
+model Testimonial {
+  id        String   @id @default(cuid())
+  name      String
+  quote     String   @db.Text
+  roleLabel String?
+  imageUrl  String?
+  position  Int      @default(0)
+  visible   Boolean  @default(true)
+  createdAt DateTime @default(now())
+}
+
+model FAQ {
+  id       String  @id @default(cuid())
+  question String
+  answer   String  @db.Text
+  category String?
+  position Int     @default(0)
+  visible  Boolean @default(true)
+}
+
+model SocialLink {
+  id       String  @id @default(cuid())
+  platform String
+  label    String?
+  url      String
+  position Int     @default(0)
+  visible  Boolean @default(true)
+}
+
+model SeoEntry {
+  id          String  @id @default(cuid())
+  path        String  @unique
+  title       String?
+  description String?
+  ogImage     String?
+  noindex     Boolean @default(false)
+}
+
+model Media {
+  id        String   @id @default(cuid())
+  filename  String
+  mimeType  String
+  size      Int
+  data      Bytes
+  createdBy String?
+  createdAt DateTime @default(now())
+}
+
+model SiteSetting {
+  key       String   @id
+  value     Json
+  updatedAt DateTime @updatedAt
+}
+
+/// Encrypted (AES-256-GCM) credentials. Never selected by public queries.
+model IntegrationSecret {
+  key         String   @id
+  ciphertext  String
+  iv          String
+  tag         String
+  hint        String?
+  updatedById String?
+  updatedAt   DateTime @updatedAt
+}
+
+model ContactInquiry {
+  id        String    @id @default(cuid())
+  name      String
+  email     String
+  phone     String?
+  subject   String
+  message   String    @db.Text
+  handledAt DateTime?
+  createdAt DateTime  @default(now())
+
+  @@index([createdAt])
+}
+
+// ─── Orders & payments ────────────────────────────────────────────────────
+
+model Order {
+  id             String      @id @default(cuid())
+  number         String      @unique
+  userId         String
+  status         OrderStatus @default(PENDING)
+  currency       String
+  subtotal       Decimal     @db.Decimal(12, 2)
+  tax            Decimal     @default(0) @db.Decimal(12, 2)
+  total          Decimal     @db.Decimal(12, 2)
+  idempotencyKey String      @unique
+  expiresAt      DateTime?
+  paidAt         DateTime?
+  createdAt      DateTime    @default(now())
+  updatedAt      DateTime    @updatedAt
+  user           User        @relation(fields: [userId], references: [id])
+  items          OrderItem[]
+  payments       Payment[]
+  invoice        Invoice?
+
+  @@index([userId, createdAt])
+  @@index([status, expiresAt])
+}
+
+model OrderItem {
+  id                  String             @id @default(cuid())
+  orderId             String
+  type                OrderItemType
+  description         String
+  unitPrice           Decimal            @db.Decimal(12, 2)
+  quantity            Int                @default(1)
+  total               Decimal            @db.Decimal(12, 2)
+  membershipPlanId    String?
+  bookingId           String?            @unique
+  eventId             String?
+  eventRegistrationId String?            @unique
+  serviceId           String?
+  servicePurchaseId   String?            @unique
+  fulfilledAt         DateTime?
+  order               Order              @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  membershipPlan      MembershipPlan?    @relation(fields: [membershipPlanId], references: [id])
+  booking             Booking?           @relation(fields: [bookingId], references: [id])
+  event               Event?             @relation(fields: [eventId], references: [id])
+  eventRegistration   EventRegistration? @relation(fields: [eventRegistrationId], references: [id])
+  service             Service?           @relation(fields: [serviceId], references: [id])
+  servicePurchase     ServicePurchase?   @relation(fields: [servicePurchaseId], references: [id])
+  membershipPayment   MembershipPayment?
+
+  @@index([orderId])
+}
+
+model PaymentProvider {
+  id          String                @id @default(cuid())
+  key         String                @unique
+  name        String
+  description String?
+  enabled     Boolean               @default(false)
+  isDefault   Boolean               @default(false)
+  config      PaymentConfiguration?
+  payments    Payment[]
+}
+
+/// Non-secret provider configuration. Credentials live in env vars or IntegrationSecret.
+model PaymentConfiguration {
+  id                     String          @id @default(cuid())
+  providerId             String          @unique
+  environment            String          @default("sandbox")
+  shortcode              String?
+  tillNumber             String?
+  paybillNumber          String?
+  transactionType        String          @default("CustomerPayBillOnline")
+  callbackUrl            String?
+  accountReferenceFormat String          @default("{order}")
+  transactionDescription String          @default("Chess254 payment")
+  currency               String          @default("KES")
+  timeoutMinutes         Int             @default(5)
+  verifyWithQuery        Boolean         @default(true)
+  allowedCallbackIps     String[]
+  updatedAt              DateTime        @updatedAt
+  provider               PaymentProvider @relation(fields: [providerId], references: [id], onDelete: Cascade)
+}
+
+model Payment {
+  id                   String               @id @default(cuid())
+  orderId              String
+  userId               String
+  providerId           String
+  amount               Decimal              @db.Decimal(12, 2)
+  currency             String
+  phoneNumber          String
+  accountReference     String
+  checkoutRequestId    String?              @unique
+  merchantRequestId    String?
+  transactionReference String?
+  receiptNumber        String?              @unique
+  status               PaymentStatus        @default(PENDING)
+  resultCode           String?
+  failureReason        String?
+  idempotencyKey       String               @unique
+  lastQueriedAt        DateTime?
+  createdAt            DateTime             @default(now())
+  updatedAt            DateTime             @updatedAt
+  completedAt          DateTime?
+  order                Order                @relation(fields: [orderId], references: [id])
+  user                 User                 @relation(fields: [userId], references: [id])
+  provider             PaymentProvider      @relation(fields: [providerId], references: [id])
+  transactions         PaymentTransaction[]
+  callbacks            PaymentCallback[]
+  membershipPayment    MembershipPayment?
+  membershipRenewal    MembershipRenewal?
+  invoice              Invoice?
+
+  @@index([userId, createdAt])
+  @@index([orderId])
+  @@index([status, createdAt])
+}
+
+model PaymentTransaction {
+  id        String        @id @default(cuid())
+  paymentId String
+  kind      String // INITIATE | CALLBACK | QUERY | MANUAL | EXPIRE
+  status    PaymentStatus
+  reference String?
+  message   String?
+  raw       Json?
+  actorId   String?
+  createdAt DateTime      @default(now())
+  payment   Payment       @relation(fields: [paymentId], references: [id], onDelete: Cascade)
+
+  @@index([paymentId, createdAt])
+}
+
+model PaymentCallback {
+  id          String    @id @default(cuid())
+  paymentId   String?
+  providerKey String
+  eventKey    String    @unique
+  payload     Json
+  sourceIp    String?
+  verified    Boolean   @default(false)
+  outcome     String?
+  processedAt DateTime?
+  receivedAt  DateTime  @default(now())
+  payment     Payment?  @relation(fields: [paymentId], references: [id])
+
+  @@index([paymentId, receivedAt])
+}
+
+model Invoice {
+  id        String   @id @default(cuid())
+  number    String   @unique
+  orderId   String   @unique
+  paymentId String?  @unique
+  subtotal  Decimal  @db.Decimal(12, 2)
+  tax       Decimal  @db.Decimal(12, 2)
+  total     Decimal  @db.Decimal(12, 2)
+  currency  String
+  issuedAt  DateTime @default(now())
+  order     Order    @relation(fields: [orderId], references: [id])
+  payment   Payment? @relation(fields: [paymentId], references: [id])
+}
+
+// ─── Notifications & audit ────────────────────────────────────────────────
+
+model Notification {
+  id         String                 @id @default(cuid())
+  userId     String
+  type       String
+  title      String
+  body       String                 @db.Text
+  link       String?
+  readAt     DateTime?
+  createdAt  DateTime               @default(now())
+  user       User                   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  deliveries NotificationDelivery[]
+
+  @@index([userId, readAt, createdAt])
+}
+
+model NotificationDelivery {
+  id             String              @id @default(cuid())
+  notificationId String?
+  channel        NotificationChannel
+  recipient      String
+  subject        String?
+  status         DeliveryStatus      @default(QUEUED)
+  provider       String?
+  error          String?
+  sentAt         DateTime?
+  createdAt      DateTime            @default(now())
+  notification   Notification?       @relation(fields: [notificationId], references: [id], onDelete: SetNull)
+
+  @@index([status, createdAt])
+}
+
+model AuditLog {
+  id        String   @id @default(cuid())
+  actorId   String?
+  action    String
+  entity    String
+  entityId  String?
+  previous  Json?
+  next      Json?
+  ipAddress String?
+  createdAt DateTime @default(now())
+  actor     User?    @relation(fields: [actorId], references: [id], onDelete: SetNull)
+
+  @@index([actorId, createdAt])
+  @@index([entity, entityId])
+  @@index([createdAt])
+}

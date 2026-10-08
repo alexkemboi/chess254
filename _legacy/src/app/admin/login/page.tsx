@@ -1,0 +1,6 @@
+import Link from "next/link";
+import { loginAction } from "@/app/admin/actions";
+export default async function AdminLogin({ searchParams }: { searchParams: Promise<{ error?: string }> }) {
+  const { error } = await searchParams;
+  return <main className="subpage admin-login"><header className="subnav"><Link href="/" className="brand"><span className="brand-mark">♞</span>CHESS<span className="cyan">254</span></Link><Link href="/" className="arrow-link">← Public site</Link></header><section className="subhero"><div className="section-kicker">CLUBHOUSE CONTROL ROOM</div><h1>Admin<br/><span>sign in.</span></h1><p>Use the administrator account configured for this deployment.</p></section><section className="subcontent single-content"><div className="form-panel"><h2>Administrator access</h2>{error && <div className="notice">Email or password is incorrect.</div>}<form action={loginAction} className="contact-form"><label>Email<input name="email" type="email" required autoComplete="username"/></label><label>Password<input name="password" type="password" required autoComplete="current-password"/></label><button className="button" type="submit">Sign in <span>↗</span></button></form></div></section></main>;
+}

@@ -1,0 +1,120 @@
+@import "tailwindcss";
+
+@custom-variant dark (&:is(.dark *));
+
+/* Brand colour is injected from the database (brand.primaryColor) on <html>. */
+:root {
+  --brand: #00d8ff;
+  --background: #050506;
+  --surface: #0c0d10;
+  --surface-2: #121418;
+  --surface-3: #1a1d22;
+  --border: rgb(255 255 255 / 0.09);
+  --border-strong: rgb(255 255 255 / 0.16);
+  --foreground: #f6f6f4;
+  --muted: #9a9fa8;
+  --muted-2: #6b7079;
+  --danger: #ff5a6a;
+  --success: #3ee6a3;
+  --warning: #ffc24a;
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-surface: var(--surface);
+  --color-surface-2: var(--surface-2);
+  --color-surface-3: var(--surface-3);
+  --color-border: var(--border);
+  --color-border-strong: var(--border-strong);
+  --color-foreground: var(--foreground);
+  --color-muted: var(--muted);
+  --color-muted-2: var(--muted-2);
+  --color-brand: var(--brand);
+  --color-brand-soft: color-mix(in oklab, var(--brand) 14%, transparent);
+  --color-brand-foreground: #02090c;
+  --color-danger: var(--danger);
+  --color-success: var(--success);
+  --color-warning: var(--warning);
+  --font-sans: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
+  --font-display: var(--font-display), var(--font-inter), ui-sans-serif, sans-serif;
+  --font-mono: var(--font-mono), ui-monospace, monospace;
+  --radius-xl: 1rem;
+  --radius-2xl: 1.375rem;
+  --radius-3xl: 1.875rem;
+  --animate-float: float 7s ease-in-out infinite;
+  --animate-fade-up: fade-up 0.7s cubic-bezier(0.2, 0.7, 0.2, 1) both;
+  --animate-pulse-ring: pulse-ring 2.2s cubic-bezier(0.2, 0.6, 0.4, 1) infinite;
+  --animate-shimmer: shimmer 1.6s linear infinite;
+  --animate-spin-slow: spin 18s linear infinite;
+  --animate-shine: shine 6s linear infinite;
+}
+
+@keyframes float { 0%, 100% { transform: translateY(0) rotate(var(--r, 0deg)); } 50% { transform: translateY(-14px) rotate(var(--r, 0deg)); } }
+@keyframes fade-up { from { opacity: 0; transform: translateY(22px); } to { opacity: 1; transform: none; } }
+@keyframes pulse-ring { 0% { box-shadow: 0 0 0 0 color-mix(in oklab, var(--brand) 60%, transparent); } 80%, 100% { box-shadow: 0 0 0 10px transparent; } }
+@keyframes shine { to { background-position: 200% center; } }
+@keyframes shimmer { from { background-position: -400px 0; } to { background-position: 400px 0; } }
+
+@layer base {
+  * { border-color: var(--border); }
+  html { scroll-behavior: smooth; -webkit-tap-highlight-color: transparent; }
+  body {
+    background: var(--background);
+    color: var(--foreground);
+    font-family: var(--font-sans);
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+  }
+  ::selection { background: var(--brand); color: #000; }
+  :focus-visible { outline: 2px solid var(--brand); outline-offset: 2px; }
+  input[type="date"]::-webkit-calendar-picker-indicator,
+  input[type="datetime-local"]::-webkit-calendar-picker-indicator,
+  input[type="time"]::-webkit-calendar-picker-indicator { filter: invert(1); opacity: 0.6; }
+}
+
+@layer components {
+  .eyebrow { font-family: var(--font-mono); font-size: 0.72rem; letter-spacing: 0.18em; text-transform: uppercase; color: var(--brand); font-weight: 600; }
+  .display { font-family: var(--font-display); font-weight: 800; letter-spacing: -0.045em; line-height: 0.92; }
+  .text-gradient { background: linear-gradient(100deg, #fff 10%, var(--brand) 55%, #fff 95%); -webkit-background-clip: text; background-clip: text; color: transparent; background-size: 200% auto; }
+  .glass { background: color-mix(in oklab, var(--surface) 72%, transparent); backdrop-filter: blur(18px) saturate(1.4); }
+  .grid-bg {
+    background-image: linear-gradient(var(--border) 1px, transparent 1px), linear-gradient(90deg, var(--border) 1px, transparent 1px);
+    background-size: 56px 56px;
+    mask-image: radial-gradient(ellipse at center, #000 20%, transparent 75%);
+  }
+  .checker {
+    background-image: conic-gradient(rgb(255 255 255 / 0.04) 25%, transparent 0 50%, rgb(255 255 255 / 0.04) 0 75%, transparent 0);
+    background-size: 48px 48px;
+  }
+  .glow { box-shadow: 0 0 0 1px color-mix(in oklab, var(--brand) 40%, transparent), 0 20px 80px -20px color-mix(in oklab, var(--brand) 45%, transparent); }
+  .prose-chess { color: #d4d6da; line-height: 1.75; font-size: 1.02rem; }
+  .prose-chess h2 { font-family: var(--font-display); font-weight: 800; font-size: 1.6rem; letter-spacing: -0.03em; color: #fff; margin: 2rem 0 0.75rem; }
+  .prose-chess h3 { font-weight: 700; font-size: 1.2rem; color: #fff; margin: 1.6rem 0 0.5rem; }
+  .prose-chess p { margin: 0.9rem 0; }
+  .prose-chess ul, .prose-chess ol { margin: 0.9rem 0; padding-left: 1.4rem; }
+  .prose-chess ul { list-style: disc; }
+  .prose-chess ol { list-style: decimal; }
+  .prose-chess li { margin: 0.35rem 0; }
+  .prose-chess strong { color: #fff; }
+  .prose-chess a { color: var(--brand); text-decoration: underline; text-underline-offset: 3px; }
+  .prose-chess code { font-family: var(--font-mono); background: var(--surface-2); padding: 0.1rem 0.35rem; border-radius: 6px; font-size: 0.9em; }
+  .prose-chess blockquote { border-left: 3px solid var(--brand); padding-left: 1rem; color: var(--muted); }
+  .skeleton { background: linear-gradient(90deg, var(--surface-2) 0, var(--surface-3) 40px, var(--surface-2) 80px); background-size: 800px 100%; animation: var(--animate-shimmer); }
+  .no-scrollbar { scrollbar-width: none; }
+  .no-scrollbar::-webkit-scrollbar { display: none; }
+}
+
+[aria-invalid="true"] :is(input, textarea, select) { border-color: var(--danger); }
+
+[data-reveal] { opacity: 0; transform: translateY(26px); transition: opacity 0.8s cubic-bezier(0.2, 0.7, 0.2, 1), transform 0.8s cubic-bezier(0.2, 0.7, 0.2, 1); transition-delay: var(--delay, 0ms); }
+[data-reveal="in"] { opacity: 1; transform: none; }
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation-duration: 0.001ms !important; animation-iteration-count: 1 !important; transition-duration: 0.001ms !important; scroll-behavior: auto !important; }
+  [data-reveal] { opacity: 1; transform: none; }
+}
+
+@media print {
+  body { background: #fff; color: #000; }
+  .no-print { display: none !important; }
+}
