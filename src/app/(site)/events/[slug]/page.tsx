@@ -94,7 +94,7 @@ export default async function EventPage({ params }: { params: Promise<{ slug: st
               <span className="font-display text-4xl font-black">{free ? "Free" : formatMoney(price, event.currency)}</span>
               {member && event.memberPrice !== null && price.lessThan(event.price) && <span className="text-sm text-muted line-through">{formatMoney(event.price, event.currency)}</span>}
             </div>
-            {!member && event.memberPrice !== null && event.memberPrice.lessThan(event.price) && <p className="mt-1 text-sm text-brand">Members pay {formatMoney(event.memberPrice, event.currency)}</p>}
+            {!member && event.memberPrice !== null && event.memberPrice.lessThan(event.price) && <p className="mt-1 text-sm text-brand-ink">Members pay {formatMoney(event.memberPrice, event.currency)}</p>}
             {event.capacity !== null && left !== null && (
               <div className="mt-5">
                 <div className="h-2 overflow-hidden rounded-full bg-surface-3"><div className="h-full rounded-full bg-brand transition-all" style={{ width: `${Math.min(100, (taken / event.capacity) * 100)}%` }} /></div>
@@ -127,7 +127,7 @@ export default async function EventPage({ params }: { params: Promise<{ slug: st
         <article className="prose-chess max-w-none"><ReactMarkdown remarkPlugins={[remarkGfm]}>{event.description}</ReactMarkdown></article>
         {event.prizeInfo && (
           <aside className="h-fit rounded-3xl border border-brand/30 bg-brand-soft p-6">
-            <Trophy className="size-6 text-brand" />
+            <Trophy className="size-6 text-brand-ink" />
             <h2 className="mt-3 font-display text-xl font-bold">Prizes</h2>
             <p className="mt-2 whitespace-pre-line text-sm leading-relaxed">{event.prizeInfo}</p>
           </aside>
@@ -140,7 +140,7 @@ export default async function EventPage({ params }: { params: Promise<{ slug: st
 function Info({ icon, label, value }: { icon: React.ReactNode; label: string; value: string }) {
   return (
     <div className="flex items-start gap-3 rounded-2xl border border-border bg-surface/70 p-4">
-      <span className="text-brand [&_svg]:size-4">{icon}</span>
+      <span className="text-brand-ink [&_svg]:size-4">{icon}</span>
       <div><div className="text-xs text-muted">{label}</div><div className="mt-0.5 font-medium">{value}</div></div>
     </div>
   );

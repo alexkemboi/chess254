@@ -27,7 +27,7 @@ export default async function Inquiries({ searchParams }: { searchParams: Promis
                 <StatusBadge status={m.handledAt ? "RESOLVED" : "OPEN"} />
                 <span className="ml-auto text-xs text-muted">{formatDateTime(m.createdAt, timezone)}</span>
               </div>
-              <div className="mt-1 text-sm text-muted">{m.name} · <a href={`mailto:${m.email}?subject=${encodeURIComponent(`Re: ${m.subject}`)}`} className="text-brand">{m.email}</a>{m.phone && <> · <a href={`tel:${m.phone}`} className="text-brand">{m.phone}</a></>}</div>
+              <div className="mt-1 text-sm text-muted">{m.name} · <a href={`mailto:${m.email}?subject=${encodeURIComponent(`Re: ${m.subject}`)}`} className="text-brand-ink">{m.email}</a>{m.phone && <> · <a href={`tel:${m.phone}`} className="text-brand-ink">{m.phone}</a></>}</div>
               <p className="mt-3 whitespace-pre-line text-sm">{m.message}</p>
               {!m.handledAt && <div className="mt-4"><ActionButton action={markInquiryHandledAction.bind(null, m.id)}>Mark handled</ActionButton></div>}
             </div>

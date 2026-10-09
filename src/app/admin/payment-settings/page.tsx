@@ -64,7 +64,7 @@ export default async function PaymentSettings() {
         );
       })}
       <Card>
-        <CardHeader><CardTitle className="flex items-center gap-2"><Lock className="size-4 text-brand" />Credentials</CardTitle></CardHeader>
+        <CardHeader><CardTitle className="flex items-center gap-2"><Lock className="size-4 text-brand-ink" />Credentials</CardTitle></CardHeader>
         <CardContent className="grid gap-5">
           <p className="text-sm text-muted">Environment variables always take precedence. Values saved here are encrypted with AES-256-GCM using <code>SETTINGS_ENCRYPTION_KEY</code>{encryptionAvailable() ? "" : " — which is not configured, so only environment variables can be used"}.</p>
           <ul className="grid gap-2 text-sm sm:grid-cols-2">

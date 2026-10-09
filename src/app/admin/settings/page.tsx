@@ -20,10 +20,10 @@ export default async function SettingsPage({ searchParams }: { searchParams: Pro
       <div className="grid gap-6 lg:grid-cols-[200px_1fr]">
         <nav className="no-scrollbar -mx-4 flex gap-1 overflow-x-auto px-4 lg:mx-0 lg:flex-col lg:px-0">
           {SETTINGS_GROUPS.map((g) => (
-            <Link key={g} href={`/admin/settings?group=${g}`} className={cn("whitespace-nowrap rounded-lg px-3 py-2 text-sm", g === group ? "bg-brand-soft text-brand" : "text-muted hover:bg-white/5 hover:text-foreground")}>{SETTINGS_FORMS[g].title}</Link>
+            <Link key={g} href={`/admin/settings?group=${g}`} className={cn("whitespace-nowrap rounded-lg px-3 py-2 text-sm", g === group ? "bg-brand-soft text-brand-ink" : "text-muted hover:bg-foreground/5 hover:text-foreground")}>{SETTINGS_FORMS[g].title}</Link>
           ))}
-          <Link href="/admin/manage/locations" className="whitespace-nowrap rounded-lg px-3 py-2 text-sm text-muted hover:bg-white/5">Locations & hours →</Link>
-          <Link href="/admin/payment-settings" className="whitespace-nowrap rounded-lg px-3 py-2 text-sm text-muted hover:bg-white/5">M-Pesa →</Link>
+          <Link href="/admin/manage/locations" className="whitespace-nowrap rounded-lg px-3 py-2 text-sm text-muted hover:bg-foreground/5">Locations & hours →</Link>
+          <Link href="/admin/payment-settings" className="whitespace-nowrap rounded-lg px-3 py-2 text-sm text-muted hover:bg-foreground/5">M-Pesa →</Link>
         </nav>
         <div className="rounded-2xl border border-border bg-surface p-5 sm:p-7">
           <h2 className="font-display text-2xl font-bold">{form.title}</h2>

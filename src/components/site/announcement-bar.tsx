@@ -39,7 +39,7 @@ export function AnnouncementBar({ items }: { items: Item[] }) {
   if (hidden || items.length === 0) return null;
   const item = items[index % items.length];
   return (
-    <div className="relative z-50 bg-brand text-black">
+    <div className="relative z-50 bg-brand text-brand-foreground">
       <div className="mx-auto flex min-h-10 max-w-7xl items-center justify-center gap-3 px-10 py-2 text-center text-[13px] font-bold">
         <span key={item.id} className="animate-fade-up">
           {item.title}

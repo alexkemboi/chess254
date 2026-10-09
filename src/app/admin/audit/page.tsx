@@ -45,7 +45,7 @@ export default async function AuditPage({ searchParams }: { searchParams: Promis
                   <TD>
                     {(a.previous || a.next) ? (
                       <details>
-                        <summary className="cursor-pointer text-xs text-brand">View</summary>
+                        <summary className="cursor-pointer text-xs text-brand-ink">View</summary>
                         <div className="mt-2 grid max-w-xl gap-2">
                           {a.previous && <pre className="overflow-x-auto rounded-lg bg-danger/5 p-2 font-mono text-[11px]">{JSON.stringify(a.previous, null, 1)}</pre>}
                           {a.next && <pre className="overflow-x-auto rounded-lg bg-success/5 p-2 font-mono text-[11px]">{JSON.stringify(a.next, null, 1)}</pre>}

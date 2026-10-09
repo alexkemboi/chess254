@@ -102,7 +102,7 @@ export default async function Reports() {
         <CardContent className="p-0">
           <Table className="rounded-none border-0">
             <THead><tr><TH>Event</TH><TH>Status</TH><TH className="text-right">Registered</TH><TH className="text-right">Capacity</TH><TH /></tr></THead>
-            <tbody>{events.map((e) => <TR key={e.id}><TD>{e.title}</TD><TD>{humanize(e.status)}</TD><TD className="text-right">{e._count.registrations}</TD><TD className="text-right">{e.capacity ?? "∞"}</TD><TD className="text-right"><a href={`/admin/export/registrations?event=${e.id}`} className="text-xs text-brand">CSV</a></TD></TR>)}</tbody>
+            <tbody>{events.map((e) => <TR key={e.id}><TD>{e.title}</TD><TD>{humanize(e.status)}</TD><TD className="text-right">{e._count.registrations}</TD><TD className="text-right">{e.capacity ?? "∞"}</TD><TD className="text-right"><a href={`/admin/export/registrations?event=${e.id}`} className="text-xs text-brand-ink">CSV</a></TD></TR>)}</tbody>
           </Table>
         </CardContent>
       </Card>

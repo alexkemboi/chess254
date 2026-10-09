@@ -67,9 +67,9 @@ export default async function PayPage({ params }: { params: Promise<{ orderId: s
             <div className="flex justify-between text-lg font-bold"><dt>Total</dt><dd className="font-mono">{amount}</dd></div>
           </dl>
           {order.status === "PENDING" && order.expiresAt && !expired && (
-            <p className="mt-6 flex items-center gap-2 text-xs text-muted"><Clock className="size-3.5 text-brand" />Held for you until {formatDateTime(order.expiresAt, settings.general.timezone)}</p>
+            <p className="mt-6 flex items-center gap-2 text-xs text-muted"><Clock className="size-3.5 text-brand-ink" />Held for you until {formatDateTime(order.expiresAt, settings.general.timezone)}</p>
           )}
-          <p className="mt-3 flex items-center gap-2 text-xs text-muted"><ShieldCheck className="size-3.5 text-brand" />Payments are verified with Safaricom before anything is activated.</p>
+          <p className="mt-3 flex items-center gap-2 text-xs text-muted"><ShieldCheck className="size-3.5 text-brand-ink" />Payments are verified with Safaricom before anything is activated.</p>
         </section>
 
         <section className="rounded-3xl border border-border bg-surface p-6 sm:p-8">

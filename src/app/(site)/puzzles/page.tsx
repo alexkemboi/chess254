@@ -50,11 +50,11 @@ export default async function PuzzlesPage({ searchParams }: { searchParams: Prom
     const params = new URLSearchParams(Object.entries({ difficulty, theme: sp.theme, q, status: sp.status, ...patch }).filter(([, v]) => v) as [string, string][]);
     return `/puzzles${params.size ? `?${params}` : ""}`;
   };
-  const chip = (active: boolean) => cn("whitespace-nowrap rounded-full border px-4 py-2 text-sm font-medium transition", active ? "border-brand bg-brand text-black" : "border-border text-muted hover:text-foreground");
+  const chip = (active: boolean) => cn("whitespace-nowrap rounded-full border px-4 py-2 text-sm font-medium transition", active ? "border-brand bg-brand text-brand-foreground" : "border-border text-muted hover:text-foreground");
 
   return (
     <>
-      <PageHero eyebrow="Puzzle room" title="Sharpen your" highlight="tactics." body="Find the best move. Every solve updates your puzzle rating and streak." />
+      <PageHero glyph="♞" eyebrow="Puzzle room" title="Sharpen your" highlight="tactics." body="Find the best move. Every solve updates your puzzle rating and streak." />
       <Container className="py-12">
         {user && (
           <div className="mb-12 grid grid-cols-2 gap-3 lg:grid-cols-4">
@@ -97,7 +97,7 @@ export default async function PuzzlesPage({ searchParams }: { searchParams: Prom
                   <div className="pointer-events-none"><ChessBoard fen={p.fen} orientation={p.fen.split(" ")[1] === "b" ? "black" : "white"} showCoordinates={false} className="rounded-xl" /></div>
                   <div className="px-1 pb-1 pt-3">
                     <div className="flex items-center justify-between gap-2">
-                      <span className="truncate text-sm font-semibold group-hover:text-brand">{p.title}</span>
+                      <span className="truncate text-sm font-semibold group-hover:text-brand-ink">{p.title}</span>
                       {solvedSet.has(p.id) && <CheckCircle2 className="size-4 shrink-0 text-success" />}
                     </div>
                     <div className="mt-1.5 flex flex-wrap items-center gap-1.5 text-[11px] text-muted">

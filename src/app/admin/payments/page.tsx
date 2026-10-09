@@ -55,7 +55,7 @@ export default async function AdminPayments({ searchParams }: { searchParams: Pr
             <tbody>
               {rows.map((p) => (
                 <TR key={p.id}>
-                  <TD className="whitespace-nowrap text-muted"><Link href={`/admin/payments/${p.id}`} className="hover:text-brand">{formatDateTime(p.createdAt, timezone)}</Link></TD>
+                  <TD className="whitespace-nowrap text-muted"><Link href={`/admin/payments/${p.id}`} className="hover:text-brand-ink">{formatDateTime(p.createdAt, timezone)}</Link></TD>
                   <TD>{p.user.name}</TD>
                   <TD className="font-mono text-xs">{p.order.number}</TD>
                   <TD className="font-mono text-xs">{p.phoneNumber}</TD>

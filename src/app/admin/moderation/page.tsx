@@ -24,7 +24,7 @@ export default async function Moderation({ searchParams }: { searchParams: Promi
   const statusFilter = ["VISIBLE", "HIDDEN", "REMOVED"].includes(sp.status ?? "") ? (sp.status as ContentStatus) : undefined;
   const q = sp.q?.trim().slice(0, 80);
   const tabLink = (t: string) => `/admin/moderation?tab=${t}`;
-  const tabClass = (t: string) => `rounded-full border px-4 py-2 text-sm ${tab === t ? "border-brand bg-brand text-black" : "border-border text-muted"}`;
+  const tabClass = (t: string) => `rounded-full border px-4 py-2 text-sm ${tab === t ? "border-brand bg-brand text-brand-foreground" : "border-border text-muted"}`;
 
   const [reports, posts, comments, openCount] = await Promise.all([
     tab === "reports" ? prisma.communityReport.findMany({ where: { status: "OPEN" }, include: { reporter: { select: { name: true } }, post: { include: { author: { select: { id: true, name: true } } } }, comment: { include: { author: { select: { id: true, name: true } }, post: { select: { id: true, title: true } } } } }, orderBy: { createdAt: "asc" }, take: 100 }) : [],
@@ -68,7 +68,7 @@ export default async function Moderation({ searchParams }: { searchParams: Promi
                   <blockquote className="mt-3 rounded-xl border-l-2 border-warning bg-surface-2 p-3 text-sm">
                     {r.post && <div className="font-semibold">{r.post.title}</div>}
                     <div className="whitespace-pre-line text-muted">{truncate(r.comment?.body ?? r.post?.body ?? "", 600)}</div>
-                    {author && <div className="mt-2 text-xs">by <Link href={`/admin/users/${author.id}`} className="text-brand">{author.name}</Link>{postId && <> · <Link href={`/community/${postId}`} className="text-brand" target="_blank">open thread</Link></>}</div>}
+                    {author && <div className="mt-2 text-xs">by <Link href={`/admin/users/${author.id}`} className="text-brand-ink">{author.name}</Link>{postId && <> · <Link href={`/community/${postId}`} className="text-brand-ink" target="_blank">open thread</Link></>}</div>}
                   </blockquote>
                 )}
                 <div className="mt-4">
@@ -93,8 +93,8 @@ export default async function Moderation({ searchParams }: { searchParams: Promi
           <tbody>
             {posts.map((p) => (
               <TR key={p.id}>
-                <TD><Link href={`/community/${p.id}`} target="_blank" className="hover:text-brand">{p.title}</Link>{p._count.reports > 0 && <Badge variant="warning" className="ml-2">{p._count.reports} reports</Badge>}{p.pinned && <Badge className="ml-2">pinned</Badge>}</TD>
-                <TD><Link href={`/admin/users/${p.author.id}`} className="hover:text-brand">{p.author.name}</Link></TD>
+                <TD><Link href={`/community/${p.id}`} target="_blank" className="hover:text-brand-ink">{p.title}</Link>{p._count.reports > 0 && <Badge variant="warning" className="ml-2">{p._count.reports} reports</Badge>}{p.pinned && <Badge className="ml-2">pinned</Badge>}</TD>
+                <TD><Link href={`/admin/users/${p.author.id}`} className="hover:text-brand-ink">{p.author.name}</Link></TD>
                 <TD>{humanize(p.kind)}</TD>
                 <TD className="text-muted">{formatDateTime(p.createdAt, timezone)}</TD>
                 <TD><StatusBadge status={p.status} /></TD>
@@ -120,8 +120,8 @@ export default async function Moderation({ searchParams }: { searchParams: Promi
             {comments.map((c) => (
               <TR key={c.id}>
                 <TD className="max-w-md"><span className="line-clamp-2">{c.body}</span></TD>
-                <TD><Link href={`/admin/users/${c.author.id}`} className="hover:text-brand">{c.author.name}</Link></TD>
-                <TD><Link href={`/community/${c.post.id}`} target="_blank" className="text-muted hover:text-brand">{truncate(c.post.title, 40)}</Link></TD>
+                <TD><Link href={`/admin/users/${c.author.id}`} className="hover:text-brand-ink">{c.author.name}</Link></TD>
+                <TD><Link href={`/community/${c.post.id}`} target="_blank" className="text-muted hover:text-brand-ink">{truncate(c.post.title, 40)}</Link></TD>
                 <TD><StatusBadge status={c.status} /></TD>
                 <TD className="text-right">{c.status === "VISIBLE" ? <ActionButton action={moderateCommentAction.bind(null, c.id, "hide")} variant="ghost">Hide</ActionButton> : <ActionButton action={moderateCommentAction.bind(null, c.id, "restore")} variant="ghost">Restore</ActionButton>}</TD>
               </TR>

@@ -35,7 +35,7 @@ export default async function MembershipPage() {
                     {m.plan.accessStartTime && <p className="mt-1 text-sm text-muted">Clubhouse access from {m.plan.accessStartTime}{m.plan.accessEndTime ? ` to ${m.plan.accessEndTime}` : " until close"}.</p>}
                     {live && m.plan.entitlements.length > 0 && (
                       <ul className="mt-3 text-sm">
-                        {m.plan.entitlements.map((e) => <li key={e.id} className="text-brand">Includes {e.quantity} × {e.sessionType.name} per {e.period === "BILLING_PERIOD" ? "billing period" : e.period.toLowerCase()}</li>)}
+                        {m.plan.entitlements.map((e) => <li key={e.id} className="text-brand-ink">Includes {e.quantity} × {e.sessionType.name} per {e.period === "BILLING_PERIOD" ? "billing period" : e.period.toLowerCase()}</li>)}
                       </ul>
                     )}
                   </div>

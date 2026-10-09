@@ -39,11 +39,11 @@ export default async function EventsPage({ searchParams }: { searchParams: Promi
     const params = new URLSearchParams(Object.entries({ type, when: when === "past" ? "past" : undefined, q, ...patch }).filter(([, v]) => v) as [string, string][]);
     return `/events${params.size ? `?${params}` : ""}`;
   };
-  const chip = (active: boolean) => cn("rounded-full border px-4 py-2 text-sm font-medium transition whitespace-nowrap", active ? "border-brand bg-brand text-black" : "border-border text-muted hover:border-border-strong hover:text-foreground");
+  const chip = (active: boolean) => cn("rounded-full border px-4 py-2 text-sm font-medium transition whitespace-nowrap", active ? "border-brand bg-brand text-brand-foreground" : "border-border text-muted hover:border-border-strong hover:text-foreground");
 
   return (
     <>
-      <PageHero eyebrow="What's on" title="Events &" highlight="tournaments." body="Rapid and blitz tournaments, training camps, hangouts and community nights." />
+      <PageHero glyph="♜" eyebrow="What's on" title="Events &" highlight="tournaments." body="Rapid and blitz tournaments, training camps, hangouts and community nights." />
       <Container className="py-12">
         <div className="mb-8 flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
           <div className="no-scrollbar -mx-4 flex gap-2 overflow-x-auto px-4">

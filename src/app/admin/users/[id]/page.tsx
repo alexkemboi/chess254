@@ -133,7 +133,7 @@ export default async function UserDetail({ params }: { params: Promise<{ id: str
                 {canCoaches && <FormDialog trigger="Remove" title="Unassign coach" action={assignCoachAction.bind(null, user.id)} submitLabel="Unassign" variant="ghost"><input type="hidden" name="coachId" value={l.coachId} /><input type="hidden" name="remove" value="true" /><p className="text-sm text-muted">Remove {l.coach.user.name} as this member’s coach?</p></FormDialog>}
               </div>
             )) : <p className="text-sm text-muted">No assigned coach.</p>}
-            {user.coachProfile && <p className="text-sm">This user is a coach · <Link href={`/admin/manage/coaches/${user.coachProfile.id}`} className="text-brand">Edit profile</Link></p>}
+            {user.coachProfile && <p className="text-sm">This user is a coach · <Link href={`/admin/manage/coaches/${user.coachProfile.id}`} className="text-brand-ink">Edit profile</Link></p>}
           </CardContent>
         </Card>
       </div>
@@ -154,7 +154,7 @@ export default async function UserDetail({ params }: { params: Promise<{ id: str
           {user.payments.length ? (
             <Table className="rounded-none border-0">
               <THead><tr><TH>Amount</TH><TH>Status</TH><TH>Receipt</TH><TH>When</TH></tr></THead>
-              <tbody>{user.payments.map((p) => <TR key={p.id}><TD className="font-mono"><Link href={`/admin/payments/${p.id}`} className="hover:text-brand">{formatMoney(p.amount, p.currency)}</Link></TD><TD><StatusBadge status={p.status} /></TD><TD className="font-mono text-xs">{p.receiptNumber ?? "—"}</TD><TD>{formatDateTime(p.createdAt, timezone)}</TD></TR>)}</tbody>
+              <tbody>{user.payments.map((p) => <TR key={p.id}><TD className="font-mono"><Link href={`/admin/payments/${p.id}`} className="hover:text-brand-ink">{formatMoney(p.amount, p.currency)}</Link></TD><TD><StatusBadge status={p.status} /></TD><TD className="font-mono text-xs">{p.receiptNumber ?? "—"}</TD><TD>{formatDateTime(p.createdAt, timezone)}</TD></TR>)}</tbody>
             </Table>
           ) : <p className="p-5 text-sm text-muted">No payments.</p>}
         </CardContent>

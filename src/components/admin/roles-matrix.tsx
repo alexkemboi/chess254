@@ -18,7 +18,7 @@ export function RolesMatrix({ permissions, granted }: { permissions: { key: stri
           <tbody>
             {groups.map((g) => (
               <Fragment key={g}>
-                <tr className="bg-surface-2/50"><td colSpan={6} className="px-4 py-2 text-xs font-bold uppercase tracking-wider text-brand">{g}</td></tr>
+                <tr className="bg-surface-2/50"><td colSpan={6} className="px-4 py-2 text-xs font-bold uppercase tracking-wider text-brand-ink">{g}</td></tr>
                 {permissions.filter((p) => p.group === g).map((p) => (
                   <tr key={p.key} className="border-b border-border/60">
                     <td className="px-4 py-2.5"><div className="font-mono text-xs">{p.key}</div><div className="text-xs text-muted">{p.description}</div></td>

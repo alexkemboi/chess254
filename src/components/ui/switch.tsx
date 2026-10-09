@@ -22,7 +22,7 @@ export function Switch({ name, defaultChecked = false, label, description }: { n
         onClick={() => setOn(!on)}
         className={cn("relative mt-0.5 h-6 w-11 shrink-0 rounded-full border transition-colors", on ? "border-brand bg-brand" : "border-border-strong bg-surface-3")}
       >
-        <span className={cn("absolute top-0.5 size-[18px] rounded-full transition-all", on ? "left-[22px] bg-black" : "left-0.5 bg-white/70")} />
+        <span className={cn("absolute top-0.5 size-[18px] rounded-full transition-all", on ? "left-[22px] bg-black" : "left-0.5 bg-foreground/70")} />
       </button>
     </div>
   );

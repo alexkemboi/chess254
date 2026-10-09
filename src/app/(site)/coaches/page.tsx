@@ -25,7 +25,7 @@ export default async function CoachesPage({ searchParams }: { searchParams: Prom
   });
   return (
     <>
-      <PageHero eyebrow="Resident coaches" title="Coaches who" highlight="play with you." body="Spar, review and improve with coaches who know your games." />
+      <PageHero glyph="♚" eyebrow="Resident coaches" title="Coaches who" highlight="play with you." body="Spar, review and improve with coaches who know your games." />
       <Container className="py-14">
         <form className="mb-8 max-w-md" role="search">
           <input name="q" defaultValue={term} placeholder="Search coaches or specialties…" className="h-11 w-full rounded-full border border-border bg-surface px-5 text-sm outline-none focus:border-brand" />

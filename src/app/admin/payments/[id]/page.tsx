@@ -26,7 +26,7 @@ export default async function PaymentDetail({ params }: { params: Promise<{ id: 
   const canReconcile = await can(actor.role, "payments.reconcile");
   const open = ["PENDING", "PROCESSING", "EXPIRED"].includes(payment.status);
   const rows: [string, React.ReactNode][] = [
-    ["Member", <Link key="m" href={`/admin/users/${payment.userId}`} className="text-brand">{payment.user.name}</Link>],
+    ["Member", <Link key="m" href={`/admin/users/${payment.userId}`} className="text-brand-ink">{payment.user.name}</Link>],
     ["Amount", <span key="a" className="font-mono">{formatMoney(payment.amount, payment.currency)}</span>],
     ["Phone", <span key="p" className="font-mono">{payment.phoneNumber}</span>],
     ["Provider", payment.provider.name],
@@ -79,7 +79,7 @@ export default async function PaymentDetail({ params }: { params: Promise<{ id: 
               <div key={i.id} className="flex justify-between gap-3"><span>{i.description}{i.fulfilledAt ? <Badge variant="success" className="ml-2">fulfilled</Badge> : null}</span><span className="font-mono">{formatMoney(i.total, payment.order.currency)}</span></div>
             ))}
             <div className="mt-2 flex justify-between border-t border-border pt-2 font-semibold"><span>Total</span><span className="font-mono">{formatMoney(payment.order.total, payment.order.currency)}</span></div>
-            {payment.order.invoice && <Link href={`/invoices/${payment.order.invoice.number}`} className="text-brand">Invoice {payment.order.invoice.number}</Link>}
+            {payment.order.invoice && <Link href={`/invoices/${payment.order.invoice.number}`} className="text-brand-ink">Invoice {payment.order.invoice.number}</Link>}
           </CardContent>
         </Card>
       </div>
@@ -102,7 +102,7 @@ export default async function PaymentDetail({ params }: { params: Promise<{ id: 
           {payment.callbacks.length ? payment.callbacks.map((c) => (
             <details key={c.id} className="rounded-xl bg-surface-2 p-3 text-sm">
               <summary className="flex cursor-pointer flex-wrap items-center gap-2">{formatDateTime(c.receivedAt, timezone)}<Badge variant={c.verified ? "success" : "warning"}>{c.verified ? "verified" : "unverified"}</Badge><span className="text-muted">{c.outcome} · {c.sourceIp}</span></summary>
-              <pre className="mt-3 overflow-x-auto rounded-lg bg-black/40 p-3 font-mono text-xs">{JSON.stringify(c.payload, null, 2)}</pre>
+              <pre className="mt-3 overflow-x-auto rounded-lg bg-background/70 p-3 font-mono text-xs">{JSON.stringify(c.payload, null, 2)}</pre>
             </details>
           )) : <p className="text-sm text-muted">No callbacks received for this payment.</p>}
         </CardContent>

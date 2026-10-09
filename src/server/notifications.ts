@@ -97,7 +97,7 @@ async function renderEmail(title: string, body: string, link?: string | null) {
 <p style="margin:0 0 18px;font-weight:800;letter-spacing:.5px">${escapeHtml(name)}</p>
 <h1 style="font-size:22px;margin:0 0 12px">${escapeHtml(title)}</h1>
 <p style="color:#b4b8bd;line-height:1.6;white-space:pre-line">${escapeHtml(body)}</p>
-${url ? `<p style="margin-top:24px"><a href="${escapeHtml(url)}" style="background:${brand};color:#000;padding:12px 18px;border-radius:999px;text-decoration:none;font-weight:700">Open</a></p>` : ""}
+${url ? `<p style="margin-top:24px"><a href="${escapeHtml(url)}" style="background:${brand};color:#fff;padding:12px 18px;border-radius:999px;text-decoration:none;font-weight:700">Open</a></p>` : ""}
 </div></div>`;
   return { text, html };
 }

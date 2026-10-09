@@ -38,7 +38,7 @@ export default async function PostPage({ params }: { params: Promise<{ id: strin
       <Link href="/community" className="text-sm text-muted hover:text-foreground">← Community</Link>
       <article className="mt-6">
         <div className="flex items-center gap-3 text-sm">
-          <span className="grid size-10 place-items-center rounded-full bg-brand-soft text-xs font-bold text-brand">{initials(post.author.name)}</span>
+          <span className="grid size-10 place-items-center rounded-full bg-brand-soft text-xs font-bold text-brand-ink">{initials(post.author.name)}</span>
           <div><div className="font-semibold">{post.author.name}</div><div className="text-xs text-muted">{relativeTime(post.createdAt)}</div></div>
           <Badge variant="neutral" className="ml-auto">{humanize(post.kind)}</Badge>
         </div>

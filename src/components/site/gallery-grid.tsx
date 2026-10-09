@@ -30,8 +30,8 @@ export function GalleryGrid({ photos }: { photos: Photo[] }) {
           <button key={p.id} type="button" onClick={() => setIndex(i)} className="group relative block w-full overflow-hidden rounded-2xl bg-surface-2 text-left" style={{ aspectRatio: p.width && p.height ? `${p.width}/${p.height}` : "4/5" }}>
             <Img src={p.imageUrl} alt={p.alt || p.title} fill sizes="(max-width: 768px) 50vw, 25vw" className="object-cover transition duration-700 group-hover:scale-105" />
             <span className="absolute inset-0 bg-gradient-to-t from-black/85 via-transparent to-transparent opacity-0 transition group-hover:opacity-100" />
-            <span className="absolute inset-x-3 bottom-3 translate-y-2 opacity-0 transition group-hover:translate-y-0 group-hover:opacity-100">
-              {p.category && <span className="block text-[10px] font-bold uppercase tracking-widest text-brand">{p.category}</span>}
+            <span className="on-dark absolute inset-x-3 bottom-3 translate-y-2 opacity-0 transition group-hover:translate-y-0 group-hover:opacity-100">
+              {p.category && <span className="block text-[10px] font-bold uppercase tracking-widest text-brand-ink">{p.category}</span>}
               <span className="text-sm font-semibold">{p.title}</span>
             </span>
           </button>
@@ -40,7 +40,7 @@ export function GalleryGrid({ photos }: { photos: Photo[] }) {
       <D.Root open={open} onOpenChange={(o) => !o && setIndex(null)}>
         <D.Portal>
           <D.Overlay className="fixed inset-0 z-50 bg-black/95 backdrop-blur" />
-          <D.Content className="fixed inset-0 z-50 flex flex-col items-center justify-center p-4 outline-none" aria-describedby={undefined}>
+          <D.Content className="on-dark fixed inset-0 z-50 flex flex-col items-center justify-center p-4 outline-none" aria-describedby={undefined}>
             <D.Title className="sr-only">{current?.title ?? "Photo"}</D.Title>
             {current && (
               <>
@@ -68,4 +68,4 @@ export function GalleryGrid({ photos }: { photos: Photo[] }) {
   );
 }
 
-const navBtn = "absolute top-1/2 grid size-12 -translate-y-1/2 place-items-center rounded-full bg-white/10 hover:bg-brand hover:text-black";
+const navBtn = "absolute top-1/2 grid size-12 -translate-y-1/2 place-items-center rounded-full bg-white/10 hover:bg-brand hover:text-brand-foreground";

@@ -44,7 +44,7 @@ export default async function CommunityPage({ searchParams }: { searchParams: Pr
     const params = new URLSearchParams(Object.entries({ kind, q, sort: sp.sort, following: sp.following, ...patch }).filter(([, v]) => v) as [string, string][]);
     return `/community${params.size ? `?${params}` : ""}`;
   };
-  const chip = (active: boolean) => cn("whitespace-nowrap rounded-full border px-4 py-2 text-sm font-medium transition", active ? "border-brand bg-brand text-black" : "border-border text-muted hover:text-foreground");
+  const chip = (active: boolean) => cn("whitespace-nowrap rounded-full border px-4 py-2 text-sm font-medium transition", active ? "border-brand bg-brand text-brand-foreground" : "border-border text-muted hover:text-foreground");
 
   if (!settings.enabled) {
     return <Container className="py-24"><EmptyState icon={<MessagesSquare />} title="The community is closed right now" description="Check back soon." /></Container>;
@@ -52,7 +52,7 @@ export default async function CommunityPage({ searchParams }: { searchParams: Pr
 
   return (
     <>
-      <PageHero eyebrow="Community" title="Find your" highlight="people." body="Talk games, ask questions, share your wins and plan your next tournament.">
+      <PageHero glyph="♛" eyebrow="Community" title="Find your" highlight="people." body="Talk games, ask questions, share your wins and plan your next tournament.">
         <Button asChild size="lg"><Link href={user ? "/community/new" : "/login?next=/community/new"}><PenSquare />Start a post</Link></Button>
       </PageHero>
       <Container className="max-w-4xl py-12">
@@ -74,10 +74,10 @@ export default async function CommunityPage({ searchParams }: { searchParams: Pr
         {posts.length ? (
           <ul className="grid gap-3">
             {posts.map((p) => (
-              <li key={p.id} className="group rounded-3xl border border-border bg-surface p-5 transition hover:border-border-strong sm:p-6">
-                <div className="flex items-center gap-3 text-sm">
-                  <span className="grid size-9 place-items-center rounded-full bg-brand-soft text-xs font-bold text-brand">{initials(p.author.name)}</span>
-                  <span className="font-semibold">{p.author.name}</span>
+              <li key={p.id} className="group min-w-0 rounded-3xl border border-border bg-surface p-5 transition hover:border-border-strong sm:p-6">
+                <div className="flex flex-wrap items-center gap-x-3 gap-y-2 text-sm">
+                  <span className="grid size-9 place-items-center rounded-full bg-brand-soft text-xs font-bold text-brand-ink">{initials(p.author.name)}</span>
+                  <span className="min-w-0 truncate font-semibold">{p.author.name}</span>
                   <span className="text-muted">· {relativeTime(p.createdAt)}</span>
                   <span className="ml-auto flex gap-1.5">
                     {p.pinned && <Badge variant="solid"><Pin className="size-3" />Pinned</Badge>}
@@ -85,12 +85,12 @@ export default async function CommunityPage({ searchParams }: { searchParams: Pr
                   </span>
                 </div>
                 <Link href={`/community/${p.id}`} className="mt-3 block">
-                  <h2 className="font-display text-xl font-bold tracking-tight group-hover:text-brand">{p.title}</h2>
+                  <h2 className="font-display text-xl font-bold tracking-tight group-hover:text-brand-ink">{p.title}</h2>
                   <p className="mt-1.5 line-clamp-2 text-muted">{truncate(plainText(p.body), 240)}</p>
                 </Link>
                 <div className="mt-4 flex items-center gap-2">
                   <LikeButton postId={p.id} liked={Array.isArray(p.likes) && p.likes.length > 0} count={p.likeCount} signedIn={Boolean(user)} />
-                  <Link href={`/community/${p.id}#comments`} className="inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-sm text-muted hover:bg-white/5 hover:text-foreground"><MessageCircle className="size-4" />{p.commentCount}</Link>
+                  <Link href={`/community/${p.id}#comments`} className="inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-sm text-muted hover:bg-foreground/5 hover:text-foreground"><MessageCircle className="size-4" />{p.commentCount}</Link>
                   {p.pgn && <Badge className="ml-auto">♞ Game attached</Badge>}
                 </div>
               </li>

@@ -48,10 +48,10 @@ export default async function DashboardPage() {
       )}
 
       <div className="relative overflow-hidden rounded-3xl border border-border bg-gradient-to-br from-brand/15 via-surface to-surface p-6 sm:p-8">
-        <div className="pointer-events-none absolute -right-6 -top-10 font-display text-[180px] leading-none text-brand/10">♛</div>
+        <div className="pointer-events-none absolute -right-6 -top-10 font-display text-[180px] leading-none text-brand-ink/10">♛</div>
         <div className="relative flex flex-col gap-6 sm:flex-row sm:items-end sm:justify-between">
           <div>
-            <div className="flex items-center gap-2 text-sm text-muted"><Crown className="size-4 text-brand" />Membership</div>
+            <div className="flex items-center gap-2 text-sm text-muted"><Crown className="size-4 text-brand-ink" />Membership</div>
             {membership ? (
               <>
                 <div className="mt-2 font-display text-3xl font-extrabold tracking-tight">{membership.plan.name}</div>
@@ -81,7 +81,7 @@ export default async function DashboardPage() {
 
       <div className="grid gap-6 xl:grid-cols-2">
         <Card>
-          <CardHeader><CardTitle>Upcoming sessions</CardTitle><Link href="/dashboard/bookings" className="text-sm text-brand">All</Link></CardHeader>
+          <CardHeader><CardTitle>Upcoming sessions</CardTitle><Link href="/dashboard/bookings" className="text-sm text-brand-ink">All</Link></CardHeader>
           <CardContent className="grid gap-3">
             {bookings.length ? bookings.map((b) => (
               <div key={b.id} className="flex items-center justify-between gap-3 rounded-2xl bg-surface-2 p-4">
@@ -92,7 +92,7 @@ export default async function DashboardPage() {
           </CardContent>
         </Card>
         <Card>
-          <CardHeader><CardTitle>Upcoming events</CardTitle><Link href="/dashboard/events" className="text-sm text-brand">All</Link></CardHeader>
+          <CardHeader><CardTitle>Upcoming events</CardTitle><Link href="/dashboard/events" className="text-sm text-brand-ink">All</Link></CardHeader>
           <CardContent className="grid gap-3">
             {registrations.length ? registrations.map((r) => (
               <Link key={r.id} href={`/events/${r.event.slug}`} className="flex items-center justify-between gap-3 rounded-2xl bg-surface-2 p-4 hover:bg-surface-3">
@@ -103,7 +103,7 @@ export default async function DashboardPage() {
           </CardContent>
         </Card>
         <Card>
-          <CardHeader><CardTitle className="flex items-center gap-2"><ClipboardList className="size-4 text-brand" />Coaching tasks</CardTitle><Link href="/dashboard/assignments" className="text-sm text-brand">All</Link></CardHeader>
+          <CardHeader><CardTitle className="flex items-center gap-2"><ClipboardList className="size-4 text-brand-ink" />Coaching tasks</CardTitle><Link href="/dashboard/assignments" className="text-sm text-brand-ink">All</Link></CardHeader>
           <CardContent className="grid gap-3">
             {assignments.length ? assignments.map((a) => (
               <Link key={a.id} href="/dashboard/assignments" className="flex items-center justify-between gap-3 rounded-2xl bg-surface-2 p-4 hover:bg-surface-3">
@@ -114,10 +114,10 @@ export default async function DashboardPage() {
           </CardContent>
         </Card>
         <Card>
-          <CardHeader><CardTitle>Notifications</CardTitle><Link href="/dashboard/notifications" className="text-sm text-brand">All</Link></CardHeader>
+          <CardHeader><CardTitle>Notifications</CardTitle><Link href="/dashboard/notifications" className="text-sm text-brand-ink">All</Link></CardHeader>
           <CardContent className="grid gap-1">
             {notifications.length ? notifications.map((n) => (
-              <Link key={n.id} href={n.link ?? "/dashboard/notifications"} className="flex items-start gap-3 rounded-xl p-3 hover:bg-white/[0.03]">
+              <Link key={n.id} href={n.link ?? "/dashboard/notifications"} className="flex items-start gap-3 rounded-xl p-3 hover:bg-foreground/[0.03]">
                 <span className={`mt-1.5 size-2 shrink-0 rounded-full ${n.readAt ? "bg-surface-3" : "bg-brand"}`} />
                 <div className="min-w-0"><div className="truncate text-sm font-semibold">{n.title}</div><div className="truncate text-xs text-muted">{n.body}</div></div>
                 <span className="ml-auto shrink-0 text-xs text-muted">{relativeTime(n.createdAt)}</span>
@@ -140,7 +140,7 @@ function Empty({ text, cta }: { text: string; cta?: { href: string; label: strin
   return (
     <div className="flex flex-col items-start gap-3 rounded-2xl border border-dashed border-border p-5 text-sm text-muted">
       {text}
-      {cta && <Link href={cta.href} className="inline-flex items-center gap-1.5 font-semibold text-brand">{cta.label}<ArrowRight className="size-4" /></Link>}
+      {cta && <Link href={cta.href} className="inline-flex items-center gap-1.5 font-semibold text-brand-ink">{cta.label}<ArrowRight className="size-4" /></Link>}
     </div>
   );
 }

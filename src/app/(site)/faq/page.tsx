@@ -18,7 +18,7 @@ export default async function FaqPage() {
   return (
     <>
       {faqs.length > 0 && <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd).replace(/</g, "\\u003c") }} />}
-      <PageHero eyebrow="Help" title="Questions," highlight="answered." />
+      <PageHero glyph="♟" eyebrow="Help" title="Questions," highlight="answered." />
       <Container className="max-w-4xl py-14">
         {faqs.length ? (
           <div className="grid gap-12">

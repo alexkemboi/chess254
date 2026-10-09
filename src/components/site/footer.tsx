@@ -38,16 +38,16 @@ export function Footer({ chrome, logo }: { chrome: Chrome; logo: React.ReactNode
           <div className="mt-6 grid gap-2.5 text-sm text-muted">
             {location && (
               <a href={location.mapUrl || `https://maps.google.com/?q=${encodeURIComponent(`${location.address}, ${location.city}`)}`} target="_blank" rel="noreferrer" className="flex items-center gap-2 hover:text-foreground">
-                <MapPin className="size-4 text-brand" /> {location.address}, {location.city}
+                <MapPin className="size-4 text-brand-ink" /> {location.address}, {location.city}
               </a>
             )}
-            {settings.contact.phone && <a href={`tel:${settings.contact.phone}`} className="flex items-center gap-2 hover:text-foreground"><Phone className="size-4 text-brand" />{settings.contact.phone}</a>}
-            {settings.contact.email && <a href={`mailto:${settings.contact.email}`} className="flex items-center gap-2 hover:text-foreground"><Mail className="size-4 text-brand" />{settings.contact.email}</a>}
+            {settings.contact.phone && <a href={`tel:${settings.contact.phone}`} className="flex items-center gap-2 hover:text-foreground"><Phone className="size-4 text-brand-ink" />{settings.contact.phone}</a>}
+            {settings.contact.email && <a href={`mailto:${settings.contact.email}`} className="flex items-center gap-2 hover:text-foreground"><Mail className="size-4 text-brand-ink" />{settings.contact.email}</a>}
           </div>
           {socials.length > 0 && (
             <div className="mt-6 flex gap-2">
               {socials.map((s) => (
-                <a key={s.id} href={s.url} target="_blank" rel="noreferrer" aria-label={s.label || s.platform} className="grid size-10 place-items-center rounded-full border border-border text-muted transition hover:border-brand hover:text-brand">
+                <a key={s.id} href={s.url} target="_blank" rel="noreferrer" aria-label={s.label || s.platform} className="grid size-10 place-items-center rounded-full border border-border text-muted transition hover:border-brand hover:text-brand-ink">
                   <SocialIcon platform={s.platform} className="size-4" />
                 </a>
               ))}
@@ -60,7 +60,7 @@ export function Footer({ chrome, logo }: { chrome: Chrome; logo: React.ReactNode
               <div className="eyebrow mb-4 text-muted">{col.title}</div>
               <ul className="grid gap-2.5 text-sm">
                 {col.links.map(([href, label]) => (
-                  <li key={href}><Link href={href} className="text-foreground/80 hover:text-brand">{label}</Link></li>
+                  <li key={href}><Link href={href} className="text-foreground/80 hover:text-brand-ink">{label}</Link></li>
                 ))}
               </ul>
             </div>

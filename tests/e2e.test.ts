@@ -88,6 +88,48 @@ describe("public site", () => {
     await page.close();
   });
 
+  test("the theme toggle switches to light mode and persists across reloads", async () => {
+    const context = await browser.newContext({ viewport: { width: 1440, height: 900 } });
+    const page = await context.newPage();
+    const theme = () => page.evaluate(() => document.documentElement.className.match(/\b(light|dark)\b/)?.[1]);
+    const bg = () => page.evaluate(() => getComputedStyle(document.body).backgroundColor);
+    await page.goto(APP_URL, { waitUntil: "networkidle" });
+    assert.equal(await theme(), "dark", "dark by default");
+    const darkBg = await bg();
+    await page.getByRole("button", { name: "Switch to light mode" }).first().click();
+    assert.equal(await theme(), "light");
+    // Wait out the 0.3s colour transition before reading the background.
+    await page.waitForTimeout(500);
+    assert.notEqual(await bg(), darkBg, "background changes");
+    // The saved choice is applied before first paint on the next load and on other pages.
+    await page.goto(`${APP_URL}/coaches`, { waitUntil: "commit" });
+    await page.waitForSelector("body");
+    assert.equal(await theme(), "light", "applied before hydration");
+    await page.reload({ waitUntil: "networkidle" });
+    assert.equal(await theme(), "light", "persists after reload");
+    await shot(page, "coaches-light");
+    await page.getByRole("button", { name: "Switch to dark mode" }).first().click();
+    await page.reload({ waitUntil: "networkidle" });
+    assert.equal(await theme(), "dark");
+    await context.close();
+  });
+
+  test("cards in the same row share one height", async () => {
+    const page = await browser.newPage({ viewport: { width: 1440, height: 900 } });
+    await page.goto(APP_URL, { waitUntil: "networkidle" });
+    // Selectors are passed in rather than wrapped in a helper: tsx would inject a
+    // `__name` call into a named function, which does not exist in the browser.
+    const rows = {
+      plans: await page.$$eval("article:has(a[href^='/join/'])", (els) => els.map((e) => Math.round(e.getBoundingClientRect().height))),
+      stats: await page.$$eval("main li > a[href='/coaches'], main li > a[href='/learn'], main li > a[href='/puzzles']", (els) => els.map((e) => Math.round(e.getBoundingClientRect().height))),
+    };
+    for (const [name, h] of Object.entries(rows)) {
+      assert.ok(h.length >= 2, `${name}: found cards`);
+      assert.equal(new Set(h).size, 1, `${name}: equal heights ${h.join(", ")}`);
+    }
+    await page.close();
+  });
+
   test("a puzzle can be solved by clicking the board", async () => {
     const puzzle = await prisma.puzzle.findFirstOrThrow({ where: { title: "Back-rank mate" } });
     const page = await browser.newPage({ viewport: { width: 1280, height: 900 } });

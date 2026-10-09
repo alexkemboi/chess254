@@ -8,7 +8,7 @@ export default async function ResetPage({ searchParams }: { searchParams: Promis
   const { token } = await searchParams;
   return (
     <AuthShell title="New password." subtitle="Choose a strong password you haven't used before.">
-      {token ? <ResetForm token={token} /> : <p className="text-muted">This link is missing its token. <Link href="/forgot-password" className="text-brand underline">Request a new one</Link>.</p>}
+      {token ? <ResetForm token={token} /> : <p className="text-muted">This link is missing its token. <Link href="/forgot-password" className="text-brand-ink underline">Request a new one</Link>.</p>}
     </AuthShell>
   );
 }

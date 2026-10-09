@@ -118,12 +118,12 @@ export function PuzzleSolver({ puzzle, signedIn, compact = false, nextHref }: { 
           </div>
           {result?.recorded && result.rating !== undefined && (
             <div className="mt-4 grid grid-cols-2 gap-2 text-sm">
-              <div className="rounded-xl bg-black/30 p-3"><div className="flex items-center gap-1.5 text-xs text-muted"><Trophy className="size-3.5" />Puzzle rating</div><div className="mt-1 font-display text-xl font-extrabold">{result.rating}{result.delta ? <span className={cn("ml-1.5 text-sm", result.delta > 0 ? "text-success" : "text-danger")}>{result.delta > 0 ? "+" : ""}{result.delta}</span> : null}</div></div>
-              <div className="rounded-xl bg-black/30 p-3"><div className="flex items-center gap-1.5 text-xs text-muted"><Flame className="size-3.5" />Streak</div><div className="mt-1 font-display text-xl font-extrabold">{result.streak}<span className="ml-1.5 text-xs font-medium text-muted">best {result.best}</span></div></div>
+              <div className="rounded-xl bg-background/60 p-3"><div className="flex items-center gap-1.5 text-xs text-muted"><Trophy className="size-3.5" />Puzzle rating</div><div className="mt-1 font-display text-xl font-extrabold">{result.rating}{result.delta ? <span className={cn("ml-1.5 text-sm", result.delta > 0 ? "text-success" : "text-danger")}>{result.delta > 0 ? "+" : ""}{result.delta}</span> : null}</div></div>
+              <div className="rounded-xl bg-background/60 p-3"><div className="flex items-center gap-1.5 text-xs text-muted"><Flame className="size-3.5" />Streak</div><div className="mt-1 font-display text-xl font-extrabold">{result.streak}<span className="ml-1.5 text-xs font-medium text-muted">best {result.best}</span></div></div>
             </div>
           )}
           {!signedIn && phase !== "solving" && phase !== "waiting" && (
-            <p className="mt-4 text-xs text-muted"><Link href="/login?next=/puzzles" className="text-brand underline">Sign in</Link> to track your rating and streak.</p>
+            <p className="mt-4 text-xs text-muted"><Link href="/login?next=/puzzles" className="text-brand-ink underline">Sign in</Link> to track your rating and streak.</p>
           )}
         </div>
         {hint && <div className="rounded-2xl border border-warning/30 bg-warning/10 p-4 text-sm text-warning"><Lightbulb className="mb-1 size-4" />{hint}</div>}

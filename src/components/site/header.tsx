@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { SheetContent } from "@/components/ui/dialog";
 import { cn, initials } from "@/lib/utils";
 import { logoutAction } from "@/actions/auth";
+import { ThemeToggle } from "@/components/theme";
 
 export const NAV = [
   { href: "/memberships", label: "Memberships" },
@@ -21,7 +22,7 @@ export const NAV = [
 
 export type NavUser = { name: string; email: string; unread: number; canAdmin: boolean; isCoach: boolean } | null;
 
-export function Header({ logo, user, openLabel }: { logo: React.ReactNode; user: NavUser; openLabel?: { open: boolean; label: string } | null }) {
+export function Header({ logo, user }: { logo: React.ReactNode; user: NavUser }) {
   const pathname = usePathname();
   const [scrolled, setScrolled] = React.useState(false);
   const [menuOpen, setMenuOpen] = React.useState(false);
@@ -35,37 +36,47 @@ export function Header({ logo, user, openLabel }: { logo: React.ReactNode; user:
 
   const active = (href: string) => pathname === href || pathname.startsWith(`${href}/`);
 
+  const iconBtn = "grid size-10 place-items-center rounded-full text-muted transition hover:bg-foreground/[0.07] hover:text-foreground";
+
   return (
-    <header className={cn("sticky top-0 z-40 transition-all duration-300", scrolled ? "glass border-b border-border" : "border-b border-transparent")}>
-      <div className="mx-auto flex h-16 max-w-7xl items-center gap-6 px-4 sm:px-6 lg:h-[72px]">
-        {logo}
-        <nav className="hidden flex-1 items-center justify-center gap-1 lg:flex" aria-label="Main">
-          {NAV.map((item) => (
-            <Link
-              key={item.href}
-              href={item.href}
-              className={cn("relative rounded-full px-3.5 py-2 text-[13.5px] font-medium transition-colors", active(item.href) ? "text-foreground" : "text-muted hover:text-foreground")}
-            >
-              {item.label}
-              {active(item.href) && <span className="absolute inset-x-3.5 -bottom-0.5 h-0.5 rounded-full bg-brand" />}
-            </Link>
-          ))}
+    <header className="sticky top-0 z-40 px-3 pt-3 sm:px-4">
+      <div
+        className={cn(
+          "mx-auto flex h-16 max-w-7xl items-center gap-2 rounded-full sm:gap-3 border pl-3 pr-3 backdrop-blur-xl transition-all duration-300 sm:pl-4",
+          scrolled
+            ? "border-border-strong bg-surface/85 shadow-[0_14px_40px_-14px_var(--shadow-color)]"
+            : "border-border bg-surface/60 shadow-[0_6px_24px_-16px_var(--shadow-color)]",
+        )}
+      >
+        <div className="shrink-0">{logo}</div>
+        <nav className="hidden flex-1 items-center justify-center xl:flex" aria-label="Main">
+          <div className="flex items-center gap-0.5 rounded-full p-1">
+            {NAV.map((item) => (
+              <Link
+                key={item.href}
+                href={item.href}
+                aria-current={active(item.href) ? "page" : undefined}
+                className={cn(
+                  "relative flex items-center gap-1.5 rounded-full px-3.5 py-2 text-[13.5px] font-medium tracking-[-0.005em] transition-all duration-200",
+                  active(item.href) ? "bg-foreground/[0.08] text-foreground" : "text-muted hover:bg-foreground/[0.05] hover:text-foreground",
+                )}
+              >
+                {active(item.href) && <span className="size-1.5 rounded-full bg-brand" aria-hidden />}
+                {item.label}
+              </Link>
+            ))}
+          </div>
         </nav>
-        <div className="ml-auto flex items-center gap-2 lg:ml-0">
-          {openLabel && (
-            <span className="hidden items-center gap-2 whitespace-nowrap rounded-full border border-border px-3 py-1.5 text-xs text-muted 2xl:flex">
-              <span className={cn("size-2 rounded-full", openLabel.open ? "animate-pulse-ring bg-success" : "bg-muted-2")} />
-              {openLabel.label}
-            </span>
-          )}
-          <Link href="/search" className="hidden size-10 place-items-center rounded-full text-muted hover:bg-white/5 hover:text-foreground sm:grid" aria-label="Search">
+        <div className="ml-auto flex items-center gap-1 xl:ml-0">
+          <Link href="/search" className={cn(iconBtn, "hidden sm:grid")} aria-label="Search">
             <Search className="size-[18px]" />
           </Link>
+          <ThemeToggle className="hidden sm:grid" />
           {user ? (
             <>
-              <Link href="/dashboard/notifications" className="relative grid size-10 place-items-center rounded-full text-muted hover:bg-white/5 hover:text-foreground" aria-label={`Notifications${user.unread ? ` (${user.unread} unread)` : ""}`}>
+              <Link href="/dashboard/notifications" className={cn(iconBtn, "relative")} aria-label={`Notifications${user.unread ? ` (${user.unread} unread)` : ""}`}>
                 <Bell className="size-[18px]" />
-                {user.unread > 0 && <span className="absolute right-1.5 top-1.5 grid min-w-4 place-items-center rounded-full bg-brand px-1 text-[10px] font-bold text-black">{user.unread > 9 ? "9+" : user.unread}</span>}
+                {user.unread > 0 && <span className="absolute right-1.5 top-1.5 grid min-w-4 place-items-center rounded-full bg-brand px-1 text-[10px] font-bold text-brand-foreground">{user.unread > 9 ? "9+" : user.unread}</span>}
               </Link>
               <UserMenu user={user} />
             </>
@@ -74,14 +85,14 @@ export function Header({ logo, user, openLabel }: { logo: React.ReactNode; user:
               <Button asChild variant="ghost" size="sm" className="hidden sm:inline-flex">
                 <Link href="/login">Sign in</Link>
               </Button>
-              <Button asChild size="sm">
-                <Link href="/register">Join the club</Link>
+              <Button asChild size="sm" className="ml-1 h-10 shrink-0 px-5">
+                <Link href="/register"><span className="min-[380px]:hidden">Join</span><span className="max-[379px]:hidden">Join the club</span></Link>
               </Button>
             </>
           )}
           <D.Root open={menuOpen} onOpenChange={setMenuOpen}>
             <D.Trigger asChild>
-              <Button variant="ghost" size="icon" className="lg:hidden" aria-label="Open menu">
+              <Button variant="ghost" size="icon" className="xl:hidden" aria-label="Open menu">
                 <Menu className="size-5" />
               </Button>
             </D.Trigger>
@@ -93,13 +104,18 @@ export function Header({ logo, user, openLabel }: { logo: React.ReactNode; user:
                     key={item.href}
                     href={item.href}
                     onClick={() => setMenuOpen(false)}
+                    aria-current={active(item.href) ? "page" : undefined}
                     style={{ animationDelay: `${i * 35}ms` }}
-                    className={cn("animate-fade-up rounded-xl px-3 py-3 font-display text-2xl font-bold tracking-tight", active(item.href) ? "bg-brand-soft text-brand" : "hover:bg-white/5")}
+                    className={cn("animate-fade-up rounded-xl px-3 py-3 font-display text-2xl font-bold tracking-tight", active(item.href) ? "bg-brand-soft text-brand-ink" : "hover:bg-foreground/5")}
                   >
                     {item.label}
                   </Link>
                 ))}
               </nav>
+              <div className="mt-6 flex items-center justify-between rounded-2xl border border-border px-4 py-2">
+                <span className="text-sm font-medium text-muted">Appearance</span>
+                <ThemeToggle />
+              </div>
               <div className="mt-auto grid gap-2 pt-8">
                 {user ? (
                   <>
@@ -122,11 +138,11 @@ export function Header({ logo, user, openLabel }: { logo: React.ReactNode; user:
 }
 
 function UserMenu({ user }: { user: NonNullable<NavUser> }) {
-  const item = "flex items-center gap-2.5 rounded-lg px-2.5 py-2 text-sm text-foreground/90 outline-none data-[highlighted]:bg-white/6 [&_svg]:size-4 [&_svg]:text-muted";
+  const item = "flex items-center gap-2.5 rounded-lg px-2.5 py-2 text-sm text-foreground/90 outline-none data-[highlighted]:bg-foreground/6 [&_svg]:size-4 [&_svg]:text-muted";
   return (
     <DropdownMenu.Root>
       <DropdownMenu.Trigger className="flex items-center gap-1.5 rounded-full border border-border p-1 pr-2 hover:border-border-strong" aria-label="Account menu">
-        <span className="grid size-8 place-items-center rounded-full bg-brand text-xs font-bold text-black">{initials(user.name)}</span>
+        <span className="grid size-8 place-items-center rounded-full bg-brand text-xs font-bold text-brand-foreground">{initials(user.name)}</span>
         <ChevronDown className="size-3.5 text-muted" />
       </DropdownMenu.Trigger>
       <DropdownMenu.Portal>
@@ -143,7 +159,7 @@ function UserMenu({ user }: { user: NonNullable<NavUser> }) {
           {user.canAdmin && <DropdownMenu.Item asChild><Link href="/admin" className={item}><Shield />Admin portal</Link></DropdownMenu.Item>}
           <DropdownMenu.Separator className="my-1 h-px bg-border" />
           <form action={logoutAction}>
-            <button className={cn(item, "w-full hover:bg-white/6")}><LogOut />Sign out</button>
+            <button className={cn(item, "w-full hover:bg-foreground/6")}><LogOut />Sign out</button>
           </form>
         </DropdownMenu.Content>
       </DropdownMenu.Portal>

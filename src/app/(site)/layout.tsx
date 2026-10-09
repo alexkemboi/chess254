@@ -1,4 +1,4 @@
-import { getSiteChrome, openStatus } from "@/server/content";
+import { getSiteChrome } from "@/server/content";
 import { currentUser } from "@/server/auth";
 import { can } from "@/server/rbac";
 import { prisma } from "@/server/db";
@@ -20,12 +20,11 @@ export default async function SiteLayout({ children }: { children: React.ReactNo
   }
   const { brand, general } = chrome.settings;
   const logo = <Logo text={brand.logoText} accent={brand.logoAccent} fallback={general.siteName} />;
-  const status = openStatus(chrome.location);
   return (
     <>
-      <a href="#main" className="sr-only focus:not-sr-only focus:fixed focus:left-4 focus:top-4 focus:z-[60] focus:rounded-full focus:bg-brand focus:px-4 focus:py-2 focus:text-black">Skip to content</a>
+      <a href="#main" className="sr-only focus:not-sr-only focus:fixed focus:left-4 focus:top-4 focus:z-[60] focus:rounded-full focus:bg-brand focus:px-4 focus:py-2 focus:text-brand-foreground">Skip to content</a>
       <AnnouncementBar items={chrome.announcements.map((a) => ({ id: a.id, title: a.title, body: a.body, linkLabel: a.linkLabel, linkUrl: a.linkUrl }))} />
-      <Header logo={logo} user={navUser} openLabel={status ? { open: status.open, label: status.detail ? `${status.label} · ${status.detail}` : status.label } : null} />
+      <Header logo={logo} user={navUser} />
       <main id="main">{children}</main>
       <Footer chrome={chrome} logo={logo} />
     </>

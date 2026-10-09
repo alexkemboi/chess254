@@ -45,7 +45,7 @@ export default async function ResourceList({ params, searchParams }: { params: P
                 <TR key={row.id}>
                   {row.cells.map((cell, i) => (
                     <TD key={i} className={i === 0 ? "font-medium" : ""}>
-                      {i === 0 && typeof cell === "string" ? <Link href={`/admin/manage/${resource}/${row.id}`} className="hover:text-brand">{cell}</Link> : renderCell(cell)}
+                      {i === 0 && typeof cell === "string" ? <Link href={`/admin/manage/${resource}/${row.id}`} className="hover:text-brand-ink">{cell}</Link> : renderCell(cell)}
                     </TD>
                   ))}
                   <TD className="whitespace-nowrap text-right">

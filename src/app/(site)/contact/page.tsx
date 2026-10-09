@@ -19,12 +19,12 @@ export default async function ContactPage() {
   const mapQuery = location ? encodeURIComponent(`${location.address}, ${location.city}`) : null;
   return (
     <>
-      <PageHero eyebrow="Contact" title="Come say" highlight="hello." body={settings.contact.contactIntro || null} />
+      <PageHero glyph="♟" eyebrow="Contact" title="Come say" highlight="hello." body={settings.contact.contactIntro || null} />
       <Container className="grid gap-8 py-14 lg:grid-cols-[1fr_1.2fr]">
         <div className="grid h-fit gap-4">
           {location && (
             <div className="rounded-3xl border border-border bg-surface p-6">
-              <MapPin className="size-5 text-brand" />
+              <MapPin className="size-5 text-brand-ink" />
               <h2 className="mt-3 font-display text-2xl font-bold tracking-tight">{location.name}</h2>
               <p className="mt-1 text-muted">{location.address}, {location.city}</p>
               {status && <p className="mt-3 flex items-center gap-2 text-sm"><span className={cn("size-2 rounded-full", status.open ? "bg-success" : "bg-muted-2")} />{status.label}{status.detail && <span className="text-muted">· {status.detail}</span>}</p>}
@@ -37,7 +37,7 @@ export default async function ContactPage() {
           )}
           {location && location.openingHours.length > 0 && (
             <div className="rounded-3xl border border-border bg-surface p-6">
-              <Clock className="size-5 text-brand" />
+              <Clock className="size-5 text-brand-ink" />
               <h2 className="mt-3 font-semibold">Opening hours</h2>
               <ul className="mt-3 grid gap-1.5 text-sm">
                 {location.openingHours.map((h) => (
@@ -51,10 +51,10 @@ export default async function ContactPage() {
           )}
           {(settings.contact.phone || settings.contact.email || settings.contact.whatsapp || socials.length > 0) && (
             <div className="grid gap-2 rounded-3xl border border-border bg-surface p-6 text-sm">
-              {settings.contact.phone && <a href={`tel:${settings.contact.phone}`} className="flex items-center gap-3 hover:text-brand"><Phone className="size-4 text-brand" />{settings.contact.phone}</a>}
-              {settings.contact.whatsapp && <a href={`https://wa.me/${settings.contact.whatsapp.replace(/\D/g, "")}`} target="_blank" rel="noreferrer" className="flex items-center gap-3 hover:text-brand"><MessageCircle className="size-4 text-brand" />WhatsApp</a>}
-              {settings.contact.email && <a href={`mailto:${settings.contact.email}`} className="flex items-center gap-3 hover:text-brand"><Mail className="size-4 text-brand" />{settings.contact.email}</a>}
-              {socials.map((s) => <a key={s.id} href={s.url} target="_blank" rel="noreferrer" className="flex items-center gap-3 hover:text-brand"><SocialIcon platform={s.platform} className="size-4 text-brand" />{s.label || s.platform}</a>)}
+              {settings.contact.phone && <a href={`tel:${settings.contact.phone}`} className="flex items-center gap-3 hover:text-brand-ink"><Phone className="size-4 text-brand-ink" />{settings.contact.phone}</a>}
+              {settings.contact.whatsapp && <a href={`https://wa.me/${settings.contact.whatsapp.replace(/\D/g, "")}`} target="_blank" rel="noreferrer" className="flex items-center gap-3 hover:text-brand-ink"><MessageCircle className="size-4 text-brand-ink" />WhatsApp</a>}
+              {settings.contact.email && <a href={`mailto:${settings.contact.email}`} className="flex items-center gap-3 hover:text-brand-ink"><Mail className="size-4 text-brand-ink" />{settings.contact.email}</a>}
+              {socials.map((s) => <a key={s.id} href={s.url} target="_blank" rel="noreferrer" className="flex items-center gap-3 hover:text-brand-ink"><SocialIcon platform={s.platform} className="size-4 text-brand-ink" />{s.label || s.platform}</a>)}
             </div>
           )}
         </div>

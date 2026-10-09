@@ -28,7 +28,7 @@ export default async function BookPage({ searchParams }: { searchParams: Promise
 
   return (
     <>
-      <PageHero eyebrow="Coaching & sessions" title="Book your" highlight="next session." body="Pick a session, choose a date and grab a time with a resident coach. Availability updates live." />
+      <PageHero glyph="♚" eyebrow="Coaching & sessions" title="Book your" highlight="next session." body="Pick a session, choose a date and grab a time with a resident coach. Availability updates live." />
       <Container className="py-12">
         {sessionTypes.length === 0 ? (
           <EmptyState icon={<CalendarX />} title="Booking opens soon" description="Session types haven't been published yet. Check back shortly." action={<Button asChild variant="secondary"><Link href="/contact">Ask the club</Link></Button>} />

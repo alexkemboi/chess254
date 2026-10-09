@@ -31,7 +31,7 @@ function nairobi(days: number, hhmm: string) {
 
 const COACHES = [
   {
-    key: "brian", name: "Brian Otieno", title: "Head coach", rating: 2050, position: 1,
+    key: "brian", name: "Brian Otieno", imageUrl: "/images/coaches/brian.webp", title: "Head coach", rating: 2050, position: 1,
     headline: "Turns your own games into a clear plan to 1800.",
     bio: "Brian has coached club players in Nairobi for over a decade. His lessons start from your recent games: we find the patterns that cost you points and build a weekly plan around them.\n\nHe runs the Player Development programme and the Thursday rapid nights.",
     specialties: ["Game review", "Middlegame planning", "Tournament preparation"],
@@ -39,7 +39,7 @@ const COACHES = [
     hours: [[1, "16:00", "21:00"], [2, "16:00", "21:00"], [3, "16:00", "21:00"], [4, "16:00", "21:00"], [5, "16:00", "21:00"]],
   },
   {
-    key: "faith", name: "Faith Wanjiru", title: "Resident coach", rating: 1920, position: 2,
+    key: "faith", name: "Faith Wanjiru", imageUrl: "/images/coaches/faith.webp", title: "Resident coach", rating: 1920, position: 2,
     headline: "Openings that fit your style, and endgames you can win.",
     bio: "Faith is a former national junior player who loves building practical opening repertoires. Expect clear ideas rather than long memorised lines, plus plenty of endgame technique.",
     specialties: ["Opening repertoire", "Endgames", "Junior players"],
@@ -47,7 +47,7 @@ const COACHES = [
     hours: [[2, "10:00", "18:00"], [4, "10:00", "18:00"], [6, "10:00", "18:00"], [0, "10:00", "16:00"]],
   },
   {
-    key: "kevin", name: "Kevin Mwangi", title: "Beginner coach", rating: 1750, position: 3,
+    key: "kevin", name: "Kevin Mwangi", imageUrl: "/images/coaches/kevin.webp", title: "Beginner coach", rating: 1750, position: 3,
     headline: "Your first moves, explained patiently.",
     bio: "Kevin works with players who are new to the game or coming back to it. He teaches at the board, one idea at a time, until you can play a full game with confidence.",
     specialties: ["Beginners", "Tactics", "Adult learners"],
@@ -55,7 +55,7 @@ const COACHES = [
     hours: [[6, "09:00", "13:00"], [0, "09:00", "13:00"], [3, "17:00", "20:00"]],
   },
   {
-    key: "amina", name: "Amina Hassan", title: "Sparring coach", rating: 1980, position: 4,
+    key: "amina", name: "Amina Hassan", imageUrl: "/images/coaches/amina.webp", title: "Sparring coach", rating: 1980, position: 4,
     headline: "Serious games, then honest feedback.",
     bio: "Amina runs the evening sparring tables. Play a serious game against her, then go through it move by move to see where it turned.",
     specialties: ["Sparring", "Calculation", "Time management"],
@@ -171,7 +171,7 @@ async function seed() {
     const sessions = c.sessions.map(sessionId).filter((id): id is string => Boolean(id)).map((id) => ({ id }));
     const data = {
       slug: c.name.toLowerCase().replace(/\s+/g, "-"), title: c.title, headline: c.headline, bio: c.bio,
-      specialties: [...c.specialties], rating: c.rating, position: c.position, isActive: true, acceptsBookings: true,
+      specialties: [...c.specialties], imageUrl: c.imageUrl, rating: c.rating, position: c.position, isActive: true, acceptsBookings: true,
     };
     await prisma.coachProfile.upsert({
       where: { id: coachId },

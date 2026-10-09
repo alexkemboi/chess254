@@ -1,22 +1,63 @@
 @import "tailwindcss";
 
-@custom-variant dark (&:is(.dark *));
+@custom-variant dark (&:where(.dark, .dark *));
+@custom-variant light (&:where(.light, .light *));
 
-/* Brand colour is injected from the database (brand.primaryColor) on <html>. */
+/* Brand colour is injected from the database (brand.primaryColor) on <html>.
+   Palette matches chess254.vercel.app (teal on ink / sand). :root holds the dark
+   tokens; html.light (the default, see ThemeScript) switches every token. */
 :root {
-  --brand: #00d8ff;
-  --background: #050506;
-  --surface: #0c0d10;
-  --surface-2: #121418;
-  --surface-3: #1a1d22;
+  color-scheme: dark;
+  --brand: #019c98;
+  /* Brand-coloured text: lifted on dark surfaces, deepened on light ones for contrast. */
+  --brand-ink: color-mix(in srgb, var(--brand) 72%, #fff);
+  --background: #121212;
+  --surface: #181818;
+  --surface-2: #202020;
+  --surface-3: #2a2a2a;
   --border: rgb(255 255 255 / 0.09);
   --border-strong: rgb(255 255 255 / 0.16);
-  --foreground: #f6f6f4;
-  --muted: #9a9fa8;
-  --muted-2: #6b7079;
+  --foreground: #f6f4f0;
+  --muted: #aaa7a1;
+  --muted-2: #7c7974;
   --danger: #ff5a6a;
   --success: #3ee6a3;
   --warning: #ffc24a;
+  --shadow-color: rgb(0 0 0 / 0.55);
+  --art-top: #0f1817;
+  --art-bottom: #121212;
+  --art-royal: rgb(1 156 152 / 0.14);
+  --art-accent: 12%;
+  --art-line: rgb(255 255 255 / 0.03);
+  --art-dot: rgb(255 255 255 / 0.075);
+  --art-ring: color-mix(in srgb, var(--brand) 11%, transparent);
+  --art-stroke: color-mix(in srgb, var(--brand) 24%, transparent);
+}
+
+html.light {
+  color-scheme: light;
+  --brand-ink: color-mix(in srgb, var(--brand) 78%, #000);
+  --background: #f6f4f0;
+  --surface: #ffffff;
+  --surface-2: #ece9e3;
+  --surface-3: #e2ded6;
+  --border: rgb(24 24 24 / 0.1);
+  --border-strong: rgb(24 24 24 / 0.18);
+  --foreground: #181818;
+  --muted: #4a4a4a;
+  --muted-2: #6b6b6b;
+  --danger: #c8283a;
+  --success: #0a7f58;
+  --warning: #9a6400;
+  --shadow-color: rgb(24 24 24 / 0.12);
+  --art-top: #e4f4f3;
+  --art-bottom: #f6f4f0;
+  --art-royal: rgb(1 156 152 / 0.08);
+  --art-accent: 14%;
+  --art-line: rgb(24 24 24 / 0.035);
+  --art-dot: rgb(24 24 24 / 0.09);
+  --art-ring: color-mix(in srgb, var(--brand-ink) 14%, transparent);
+  --art-stroke: color-mix(in srgb, var(--brand-ink) 26%, transparent);
 }
 
 @theme inline {
@@ -30,14 +71,17 @@
   --color-muted: var(--muted);
   --color-muted-2: var(--muted-2);
   --color-brand: var(--brand);
+  --color-brand-ink: var(--brand-ink);
   --color-brand-soft: color-mix(in oklab, var(--brand) 14%, transparent);
-  --color-brand-foreground: #02090c;
+  --color-brand-foreground: #ffffff;
   --color-danger: var(--danger);
   --color-success: var(--success);
   --color-warning: var(--warning);
-  --font-sans: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
-  --font-display: var(--font-display), var(--font-inter), ui-sans-serif, sans-serif;
-  --font-mono: var(--font-mono), ui-monospace, monospace;
+  --font-sans: var(--font-dm), "Helvetica Neue", Arial, sans-serif;
+  --font-display: var(--font-bricolage), "Helvetica Neue", Arial, sans-serif;
+  --font-accent: var(--font-instrument), Georgia, serif;
+  --font-note: var(--font-caveat), "Comic Sans MS", cursive;
+  --font-mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
   --radius-xl: 1rem;
   --radius-2xl: 1.375rem;
   --radius-3xl: 1.875rem;
@@ -62,41 +106,101 @@
     background: var(--background);
     color: var(--foreground);
     font-family: var(--font-sans);
+    font-size: 17px;
+    line-height: 1.7;
     -webkit-font-smoothing: antialiased;
     text-rendering: optimizeLegibility;
   }
-  ::selection { background: var(--brand); color: #000; }
+  h1, h2, h3, h4, h5, h6 { font-family: var(--font-display); font-weight: 700; letter-spacing: -0.035em; line-height: 1.05; text-wrap: balance; }
+  ::selection { background: var(--brand); color: #fff; }
   :focus-visible { outline: 2px solid var(--brand); outline-offset: 2px; }
-  input[type="date"]::-webkit-calendar-picker-indicator,
-  input[type="datetime-local"]::-webkit-calendar-picker-indicator,
-  input[type="time"]::-webkit-calendar-picker-indicator { filter: invert(1); opacity: 0.6; }
+  html:not(.light) input[type="date"]::-webkit-calendar-picker-indicator,
+  html:not(.light) input[type="datetime-local"]::-webkit-calendar-picker-indicator,
+  html:not(.light) input[type="time"]::-webkit-calendar-picker-indicator { filter: invert(1); opacity: 0.6; }
+  /* Smooth colour change when the theme is toggled (class added briefly by ThemeToggle). */
+  html.theme-transition, html.theme-transition * { transition: background-color 0.3s ease, border-color 0.3s ease, color 0.3s ease, fill 0.3s ease !important; }
 }
 
 @layer components {
-  .eyebrow { font-family: var(--font-mono); font-size: 0.72rem; letter-spacing: 0.18em; text-transform: uppercase; color: var(--brand); font-weight: 600; }
-  .display { font-family: var(--font-display); font-weight: 800; letter-spacing: -0.045em; line-height: 0.92; }
-  .text-gradient { background: linear-gradient(100deg, #fff 10%, var(--brand) 55%, #fff 95%); -webkit-background-clip: text; background-clip: text; color: transparent; background-size: 200% auto; }
+  .eyebrow { font-family: var(--font-sans); font-size: 0.9375rem; letter-spacing: 0.02em; color: var(--brand-ink); font-weight: 700; }
+  .display { font-family: var(--font-display); font-weight: 800; letter-spacing: -0.045em; line-height: 0.95; text-wrap: balance; }
+  .heading-display, .heading-1, .heading-2, .heading-3, .heading-4, .heading-5, .heading-6 { font-family: var(--font-display); font-weight: 700; letter-spacing: -0.035em; line-height: 1.05; text-wrap: balance; }
+  .heading-display { font-size: clamp(3rem, 8.5vw, 7.5rem); font-weight: 800; letter-spacing: -0.045em; line-height: 0.95; }
+  .heading-1 { font-size: clamp(2.5rem, 5vw, 3.5rem); }
+  .heading-2 { font-size: clamp(2rem, 4vw, 3rem); }
+  .heading-3 { font-size: clamp(1.75rem, 3.2vw, 2.5rem); }
+  .heading-4 { font-size: clamp(1.5rem, 2.6vw, 2.25rem); }
+  .heading-5 { font-size: clamp(1.25rem, 2vw, 1.875rem); }
+  .heading-6 { font-size: 1.375rem; }
+  .accent { font-family: var(--font-accent); font-style: italic; font-weight: 400; letter-spacing: -0.01em; }
+  .note { font-family: var(--font-note); font-size: 1.5rem; font-weight: 600; line-height: 1.1; letter-spacing: 0; }
+  .text-gradient { background: linear-gradient(100deg, var(--foreground) 10%, var(--brand-ink) 55%, var(--foreground) 95%); -webkit-background-clip: text; background-clip: text; color: transparent; background-size: 200% auto; }
   .glass { background: color-mix(in oklab, var(--surface) 72%, transparent); backdrop-filter: blur(18px) saturate(1.4); }
-  .grid-bg {
-    background-image: linear-gradient(var(--border) 1px, transparent 1px), linear-gradient(90deg, var(--border) 1px, transparent 1px);
-    background-size: 56px 56px;
-    mask-image: radial-gradient(ellipse at center, #000 20%, transparent 75%);
+  /* Hero backdrop layers (see HeroBackdrop): glow depth, a fading dot field,
+     concentric "board halo" rings and an outlined chess piece. */
+  .hero-art {
+    background:
+      radial-gradient(55% 85% at 100% 0%, color-mix(in srgb, var(--brand) calc(var(--art-accent) * 1.5), transparent), transparent 70%),
+      radial-gradient(50% 75% at 0% 100%, var(--art-royal), transparent 70%),
+      linear-gradient(180deg, var(--art-top), var(--background));
   }
-  .checker {
-    background-image: conic-gradient(rgb(255 255 255 / 0.04) 25%, transparent 0 50%, rgb(255 255 255 / 0.04) 0 75%, transparent 0);
-    background-size: 48px 48px;
+  .dot-field {
+    background-image: radial-gradient(var(--art-dot) 1px, transparent 1.6px);
+    background-size: 22px 22px;
+    mask-image: radial-gradient(ellipse 55% 75% at 78% 35%, #000 0%, transparent 72%);
   }
+  .halo-rings {
+    border-radius: 9999px;
+    background: repeating-radial-gradient(circle at center, transparent 0 54px, var(--art-ring) 54px 55px);
+    mask-image: radial-gradient(circle at center, #000 25%, transparent 70%);
+  }
+  .glyph-outline { color: transparent; -webkit-text-stroke: 1.5px var(--art-stroke); }
+  /* Premium section background: navy/royal-blue depth, a cyan accent glow and a
+     barely-there diagonal hairline pattern that fades out towards the edges. */
+  .bg-premium {
+    position: relative;
+    isolation: isolate;
+    background:
+      radial-gradient(60% 70% at 12% 0%, var(--art-royal), transparent 70%),
+      radial-gradient(50% 60% at 92% 100%, color-mix(in srgb, var(--brand) var(--art-accent), transparent), transparent 70%),
+      linear-gradient(180deg, var(--art-top), var(--art-bottom));
+  }
+  .bg-premium::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    z-index: -1;
+    pointer-events: none;
+    background-image: repeating-linear-gradient(135deg, var(--art-line) 0 1px, transparent 1px 22px);
+    mask-image: radial-gradient(ellipse 70% 60% at 50% 40%, #000 10%, transparent 75%);
+  }
+  /* Softer variant for empty states and small panels. */
+  .bg-premium-soft {
+    background:
+      radial-gradient(80% 90% at 0% 0%, var(--art-royal), transparent 65%),
+      radial-gradient(70% 80% at 100% 100%, color-mix(in srgb, var(--brand) calc(var(--art-accent) * 0.7), transparent), transparent 70%);
+  }
+  /* Always-dark artwork tile used where a photo is missing (coaches, lessons). */
+  .art-tile {
+    background:
+      radial-gradient(70% 55% at 85% 8%, color-mix(in srgb, var(--brand) 26%, transparent), transparent 70%),
+      radial-gradient(80% 60% at 0% 100%, rgb(1 122 119 / 0.3), transparent 70%),
+      repeating-linear-gradient(135deg, rgb(255 255 255 / 0.035) 0 1px, transparent 1px 18px),
+      linear-gradient(160deg, #1d2726 0%, #181818 45%, #101010 100%);
+  }
+  /* Content sitting on an always-dark surface (photo overlays, lightbox): keep light ink in both themes. */
+  .on-dark { --foreground: #f6f4f0; --muted: #bdbab4; --muted-2: #8f8c86; --brand-ink: color-mix(in srgb, var(--brand) 72%, #fff); --border: rgb(255 255 255 / 0.12); color: var(--foreground); }
   .glow { box-shadow: 0 0 0 1px color-mix(in oklab, var(--brand) 40%, transparent), 0 20px 80px -20px color-mix(in oklab, var(--brand) 45%, transparent); }
-  .prose-chess { color: #d4d6da; line-height: 1.75; font-size: 1.02rem; }
-  .prose-chess h2 { font-family: var(--font-display); font-weight: 800; font-size: 1.6rem; letter-spacing: -0.03em; color: #fff; margin: 2rem 0 0.75rem; }
-  .prose-chess h3 { font-weight: 700; font-size: 1.2rem; color: #fff; margin: 1.6rem 0 0.5rem; }
+  .prose-chess { color: color-mix(in srgb, var(--foreground) 84%, var(--background)); line-height: 1.75; font-size: 1.02rem; }
+  .prose-chess h2 { font-family: var(--font-display); font-weight: 800; font-size: 1.6rem; letter-spacing: -0.03em; color: var(--foreground); margin: 2rem 0 0.75rem; }
+  .prose-chess h3 { font-weight: 700; font-size: 1.2rem; color: var(--foreground); margin: 1.6rem 0 0.5rem; }
   .prose-chess p { margin: 0.9rem 0; }
   .prose-chess ul, .prose-chess ol { margin: 0.9rem 0; padding-left: 1.4rem; }
   .prose-chess ul { list-style: disc; }
   .prose-chess ol { list-style: decimal; }
   .prose-chess li { margin: 0.35rem 0; }
-  .prose-chess strong { color: #fff; }
-  .prose-chess a { color: var(--brand); text-decoration: underline; text-underline-offset: 3px; }
+  .prose-chess strong { color: var(--foreground); }
+  .prose-chess a { color: var(--brand-ink); text-decoration: underline; text-underline-offset: 3px; }
   .prose-chess code { font-family: var(--font-mono); background: var(--surface-2); padding: 0.1rem 0.35rem; border-radius: 6px; font-size: 0.9em; }
   .prose-chess blockquote { border-left: 3px solid var(--brand); padding-left: 1rem; color: var(--muted); }
   .skeleton { background: linear-gradient(90deg, var(--surface-2) 0, var(--surface-3) 40px, var(--surface-2) 80px); background-size: 800px 100%; animation: var(--animate-shimmer); }

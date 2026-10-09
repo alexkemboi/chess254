@@ -14,10 +14,10 @@ export function SubNav({ items, root }: { items: { href: string; label: string; 
           <Link
             key={item.href}
             href={item.href}
-            className={cn("flex items-center justify-between gap-3 whitespace-nowrap rounded-xl px-4 py-2.5 text-sm font-medium transition", active ? "bg-brand-soft text-brand" : "text-muted hover:bg-white/5 hover:text-foreground")}
+            className={cn("flex items-center justify-between gap-3 whitespace-nowrap rounded-xl px-4 py-2.5 text-sm font-medium transition", active ? "bg-brand-soft text-brand-ink" : "text-muted hover:bg-foreground/5 hover:text-foreground")}
           >
             {item.label}
-            {item.badge ? <span className="rounded-full bg-brand px-1.5 text-[10px] font-bold text-black">{item.badge}</span> : null}
+            {item.badge ? <span className="rounded-full bg-brand px-1.5 text-[10px] font-bold text-brand-foreground">{item.badge}</span> : null}
           </Link>
         );
       })}

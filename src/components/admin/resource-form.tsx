@@ -71,7 +71,7 @@ export function FieldInput({ field, value }: { field: FieldDef; value: unknown }
       control = <Input {...common} type="password" autoComplete="new-password" defaultValue="" />;
       break;
     case "color":
-      control = <ColorInput name={field.name} defaultValue={str(value) || "#00D8FF"} />;
+      control = <ColorInput name={field.name} defaultValue={str(value) || "#019C98"} />;
       break;
     case "switch":
       return <div className="rounded-xl border border-border bg-surface-2/40 p-4"><Switch name={field.name} defaultChecked={value === true || value === "true"} label={field.label} description={field.help} /></div>;
@@ -143,7 +143,7 @@ function MultiSelect({ name, options, defaultValue }: { name: string; options: {
             key={o.value}
             type="button"
             onClick={() => setSelected((s) => { const n = new Set(s); if (n.has(o.value)) n.delete(o.value); else n.add(o.value); return n; })}
-            className={cn("rounded-full border px-3.5 py-1.5 text-sm transition", on ? "border-brand bg-brand-soft text-brand" : "border-border text-muted hover:text-foreground")}
+            className={cn("rounded-full border px-3.5 py-1.5 text-sm transition", on ? "border-brand bg-brand-soft text-brand-ink" : "border-border text-muted hover:text-foreground")}
             aria-pressed={on}
           >
             {o.label}

@@ -46,7 +46,7 @@ export default async function UsersPage({ searchParams }: { searchParams: Promis
             <tbody>
               {users.map((u) => (
                 <TR key={u.id}>
-                  <TD><Link href={`/admin/users/${u.id}`} className="font-medium hover:text-brand">{u.name}</Link></TD>
+                  <TD><Link href={`/admin/users/${u.id}`} className="font-medium hover:text-brand-ink">{u.name}</Link></TD>
                   <TD className="text-muted">{u.email}</TD>
                   <TD><Badge variant={u.role === "MEMBER" ? "neutral" : "default"}>{humanize(u.role)}</Badge></TD>
                   <TD>{u.memberships[0]?.plan.name ?? <span className="text-muted">—</span>}</TD>

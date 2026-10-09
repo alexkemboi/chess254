@@ -9,7 +9,7 @@ import { prisma } from "@/server/db";
  * PostgreSQL; schema defaults are neutral system fallbacks used only when a
  * group has never been saved (e.g. an empty database).
  */
-const hex = z.string().regex(/^#[0-9a-fA-F]{6}$/, "Use a hex colour such as #00D8FF");
+const hex = z.string().regex(/^#[0-9a-fA-F]{6}$/, "Use a hex colour such as #019C98");
 const optionalUrl = z.union([z.literal(""), z.string().url()]).default("");
 const optionalEmail = z.union([z.literal(""), z.string().email()]).default("");
 const bool = (fallback: boolean) => z.preprocess((v) => v === true || v === "true" || v === "on" || v === "1", z.boolean()).default(fallback);
@@ -25,7 +25,7 @@ export const SETTINGS_SCHEMAS = {
   brand: z.object({
     logoText: z.string().default(""),
     logoAccent: z.string().default(""),
-    primaryColor: hex.default("#00D8FF"),
+    primaryColor: hex.default("#019C98"),
     heroImage: z.string().default(""),
     ogImage: z.string().default(""),
   }),

@@ -30,7 +30,7 @@ export default async function Invoices({ searchParams }: { searchParams: Promise
             <tbody>
               {rows.map((i) => (
                 <TR key={i.id}>
-                  <TD><Link href={`/invoices/${i.number}`} className="font-mono text-xs hover:text-brand">{i.number}</Link></TD>
+                  <TD><Link href={`/invoices/${i.number}`} className="font-mono text-xs hover:text-brand-ink">{i.number}</Link></TD>
                   <TD className="text-muted">{formatDateTime(i.issuedAt, timezone)}</TD>
                   <TD>{i.order.user.name}</TD>
                   <TD className="font-mono text-xs">{i.order.number}</TD>

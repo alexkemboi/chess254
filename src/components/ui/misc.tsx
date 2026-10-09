@@ -8,8 +8,8 @@ export function Skeleton({ className }: { className?: string }) {
 export function EmptyState({ icon, title, description, action, className }: { icon?: React.ReactNode; title: string; description?: string; action?: React.ReactNode; className?: string }) {
   return (
     <div className={cn("relative flex flex-col items-center justify-center overflow-hidden rounded-2xl border border-dashed border-border-strong bg-surface/50 px-6 py-14 text-center", className)}>
-      <div className="checker pointer-events-none absolute inset-0 opacity-60" />
-      <div className="relative mb-4 grid size-14 place-items-center rounded-2xl border border-border bg-surface-2 text-2xl text-brand [&_svg]:size-6">{icon ?? "♞"}</div>
+      <div className="bg-premium-soft pointer-events-none absolute inset-0" />
+      <div className="relative mb-4 grid size-14 place-items-center rounded-2xl border border-border bg-surface-2 text-2xl text-brand-ink [&_svg]:size-6">{icon ?? "♞"}</div>
       <h3 className="relative text-lg font-semibold tracking-tight">{title}</h3>
       {description && <p className="relative mt-2 max-w-sm text-sm leading-relaxed text-muted">{description}</p>}
       {action && <div className="relative mt-6">{action}</div>}
@@ -26,7 +26,7 @@ export function Table({ className, ...props }: React.ComponentProps<"table">) {
 }
 export const THead = (p: React.ComponentProps<"thead">) => <thead className="border-b border-border text-[11px] uppercase tracking-wider text-muted" {...p} />;
 export const TH = ({ className, ...p }: React.ComponentProps<"th">) => <th className={cn("px-4 py-3 font-semibold", className)} {...p} />;
-export const TR = ({ className, ...p }: React.ComponentProps<"tr">) => <tr className={cn("border-b border-border/70 last:border-0 hover:bg-white/[0.02]", className)} {...p} />;
+export const TR = ({ className, ...p }: React.ComponentProps<"tr">) => <tr className={cn("border-b border-border/70 last:border-0 hover:bg-foreground/[0.02]", className)} {...p} />;
 export const TD = ({ className, ...p }: React.ComponentProps<"td">) => <td className={cn("px-4 py-3 align-middle", className)} {...p} />;
 
 export function Stat({ label, value, hint, icon, className }: { label: string; value: React.ReactNode; hint?: React.ReactNode; icon?: React.ReactNode; className?: string }) {
@@ -34,7 +34,7 @@ export function Stat({ label, value, hint, icon, className }: { label: string; v
     <div className={cn("relative overflow-hidden rounded-2xl border border-border bg-surface p-5", className)}>
       <div className="flex items-center justify-between text-[13px] text-muted">
         <span>{label}</span>
-        {icon && <span className="text-brand [&_svg]:size-4">{icon}</span>}
+        {icon && <span className="text-brand-ink [&_svg]:size-4">{icon}</span>}
       </div>
       <div className="mt-3 font-display text-3xl font-extrabold tracking-tight tabular-nums">{value}</div>
       {hint && <div className="mt-1 text-xs text-muted">{hint}</div>}

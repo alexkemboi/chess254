@@ -93,7 +93,7 @@ export default async function AdminDashboard() {
         <Stat label="Upcoming events" value={formatNumber(upcomingEvents)} icon={<CalendarDays />} />
         <Stat label="Learning activity (30d)" value={formatNumber(learningActivity)} hint="Lessons started or completed" icon={<BookOpen />} />
         <Stat label="Community activity (30d)" value={formatNumber(posts + comments)} hint={`${posts} posts · ${comments} replies`} icon={<MessagesSquare />} />
-        <Stat label="Open reports" value={formatNumber(openReports)} hint={openReports ? <Link href="/admin/moderation" className="text-brand">Review</Link> : "Nothing to review"} icon={<Activity />} />
+        <Stat label="Open reports" value={formatNumber(openReports)} hint={openReports ? <Link href="/admin/moderation" className="text-brand-ink">Review</Link> : "Nothing to review"} icon={<Activity />} />
       </div>
 
       <div className="grid gap-6 xl:grid-cols-[1.6fr_1fr]">
@@ -116,7 +116,7 @@ export default async function AdminDashboard() {
       </div>
 
       <Card>
-        <CardHeader><CardTitle>Recent payments</CardTitle><Link href="/admin/payments" className="text-sm text-brand">All payments</Link></CardHeader>
+        <CardHeader><CardTitle>Recent payments</CardTitle><Link href="/admin/payments" className="text-sm text-brand-ink">All payments</Link></CardHeader>
         <CardContent className="p-0">
           {recentPayments.length ? (
             <Table className="rounded-none border-0">
@@ -124,7 +124,7 @@ export default async function AdminDashboard() {
               <tbody>
                 {recentPayments.map((p) => (
                   <TR key={p.id}>
-                    <TD><Link href={`/admin/payments/${p.id}`} className="hover:text-brand">{p.user.name}</Link></TD>
+                    <TD><Link href={`/admin/payments/${p.id}`} className="hover:text-brand-ink">{p.user.name}</Link></TD>
                     <TD className="font-mono text-xs">{p.order.number}</TD>
                     <TD className="font-mono">{formatMoney(p.amount, p.currency)}</TD>
                     <TD><StatusBadge status={p.status} /></TD>

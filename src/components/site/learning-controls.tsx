@@ -44,7 +44,7 @@ export function LearningControls({ materialId, bookmarked, status }: { materialI
         }}
         aria-pressed={saved}
       >
-        {saved ? <BookmarkCheck className="text-brand" /> : <Bookmark />}
+        {saved ? <BookmarkCheck className="text-brand-ink" /> : <Bookmark />}
         {saved ? "Saved" : "Save"}
       </Button>
     </div>

@@ -25,5 +25,5 @@ export function Select({ className, children, ...props }: React.ComponentProps<"
 }
 
 export function Label({ className, ...props }: React.ComponentProps<"label">) {
-  return <label className={cn("text-[13px] font-medium text-foreground/90", className)} {...props} />;
+  return <label className={cn("text-sm font-semibold text-foreground", className)} {...props} />;
 }

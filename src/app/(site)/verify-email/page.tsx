@@ -24,7 +24,7 @@ export default async function VerifyPage({ searchParams }: { searchParams: Promi
   return (
     <AuthShell title="Check your inbox." subtitle={email ? <>We sent a confirmation link to <span className="text-foreground">{email}</span>.</> : "We sent you a confirmation link."}>
       <div className="mb-6 flex items-start gap-4 rounded-2xl border border-border bg-surface p-5">
-        <MailCheck className="size-6 shrink-0 text-brand" />
+        <MailCheck className="size-6 shrink-0 text-brand-ink" />
         <p className="text-sm text-muted">Open the email and tap the link to activate your account. It’s valid for 24 hours.</p>
       </div>
       <ResendForm email={email} />

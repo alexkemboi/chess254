@@ -27,7 +27,7 @@ export default async function MyEventsPage() {
             return (
               <li key={r.id} className="flex flex-col gap-4 rounded-2xl border border-border bg-surface p-5 sm:flex-row sm:items-center sm:justify-between">
                 <div>
-                  <div className="flex flex-wrap items-center gap-2"><Link href={`/events/${r.event.slug}`} className="font-semibold hover:text-brand">{r.event.title}</Link><StatusBadge status={r.status} /></div>
+                  <div className="flex flex-wrap items-center gap-2"><Link href={`/events/${r.event.slug}`} className="font-semibold hover:text-brand-ink">{r.event.title}</Link><StatusBadge status={r.status} /></div>
                   <div className="mt-1 text-sm text-muted">{formatDateTime(r.event.startsAt, timezone)} · <span className="font-mono">{r.reference}</span>{r.price.greaterThan(0) ? ` · ${formatMoney(r.price, r.currency)}` : " · Free"}</div>
                 </div>
                 <div className="flex gap-2">

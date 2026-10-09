@@ -34,12 +34,12 @@ export default async function CoachHome() {
         <Stat label="Members coached" value={memberIds.length} icon={<Users />} />
       </div>
       <Card>
-        <CardHeader><CardTitle>Today</CardTitle><Link href="/coach/sessions" className="text-sm text-brand">All sessions</Link></CardHeader>
+        <CardHeader><CardTitle>Today</CardTitle><Link href="/coach/sessions" className="text-sm text-brand-ink">All sessions</Link></CardHeader>
         <CardContent className="grid gap-3">
           {todays.length ? todays.map((b) => (
             <div key={b.id} className="flex flex-col gap-3 rounded-2xl bg-surface-2 p-4 sm:flex-row sm:items-center sm:justify-between">
               <div>
-                <div className="flex items-center gap-2"><span className="font-mono text-brand">{formatTime(b.startsAt, timezone)}</span><span className="font-semibold">{b.member.name}</span><StatusBadge status={b.status} /></div>
+                <div className="flex items-center gap-2"><span className="font-mono text-brand-ink">{formatTime(b.startsAt, timezone)}</span><span className="font-semibold">{b.member.name}</span><StatusBadge status={b.status} /></div>
                 <div className="text-sm text-muted">{b.sessionType.name}{b.memberNotes ? ` · “${b.memberNotes}”` : ""}</div>
               </div>
               <SessionControls bookingId={b.id} status={b.status} notes={b.coachNotes} started={b.startsAt <= now} />
@@ -53,11 +53,11 @@ export default async function CoachHome() {
           <CardContent className="grid gap-2">
             {upcoming.length ? upcoming.map((b) => (
               <div key={b.id} className="flex justify-between gap-3 rounded-xl p-2 text-sm"><span>{b.member.name} · {b.sessionType.name}</span><span className="text-muted">{formatDateTime(b.startsAt, timezone)}</span></div>
-            )) : <p className="text-sm text-muted">Nothing booked yet. Make sure your <Link href="/coach/availability" className="text-brand">availability</Link> is set.</p>}
+            )) : <p className="text-sm text-muted">Nothing booked yet. Make sure your <Link href="/coach/availability" className="text-brand-ink">availability</Link> is set.</p>}
           </CardContent>
         </Card>
         <Card>
-          <CardHeader><CardTitle>Waiting for your review</CardTitle><Link href="/coach/assignments" className="text-sm text-brand">Review</Link></CardHeader>
+          <CardHeader><CardTitle>Waiting for your review</CardTitle><Link href="/coach/assignments" className="text-sm text-brand-ink">Review</Link></CardHeader>
           <CardContent className="grid gap-2">
             {pending.length ? pending.map((a) => <div key={a.id} className="flex justify-between gap-3 text-sm"><span>{a.title}</span><span className="text-muted">{a.member.name}</span></div>) : <p className="text-sm text-muted">All submissions reviewed.</p>}
           </CardContent>

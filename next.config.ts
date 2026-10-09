@@ -22,6 +22,8 @@ const csp = [
 
 const nextConfig: NextConfig = {
   poweredByHeader: false,
+  // Self-contained server bundle for VPS deploys (`NEXT_OUTPUT=standalone npm run build`).
+  ...(process.env.NEXT_OUTPUT === "standalone" ? { output: "standalone" as const } : {}),
   images: {
     remotePatterns: [],
     localPatterns: [{ pathname: "/gallery/**" }, { pathname: "/media/**" }, { pathname: "/**" }],

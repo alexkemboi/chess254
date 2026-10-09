@@ -46,11 +46,11 @@ export default async function LearnPage({ searchParams }: { searchParams: Promis
     const params = new URLSearchParams(Object.entries({ q, category: category?.slug, type, level: sp.level, saved: sp.saved, ...patch }).filter(([, v]) => v) as [string, string][]);
     return `/learn${params.size ? `?${params}` : ""}`;
   };
-  const chip = (active: boolean) => cn("whitespace-nowrap rounded-full border px-4 py-2 text-sm font-medium transition", active ? "border-brand bg-brand text-black" : "border-border text-muted hover:text-foreground");
+  const chip = (active: boolean) => cn("whitespace-nowrap rounded-full border px-4 py-2 text-[15px] font-semibold transition", active ? "border-brand bg-brand text-brand-foreground" : "border-border text-muted hover:text-foreground");
 
   return (
     <>
-      <PageHero eyebrow="Chess254 Academy" title="Learn the game," highlight="properly." body="Openings, tactics, strategy and endgames — structured lessons you can study between games." />
+      <PageHero glyph="♝" eyebrow="Chess254 Academy" title="Learn the game," highlight="properly." body="Openings, tactics, strategy and endgames — structured lessons you can study between games." />
       <Container className="py-12">
         <div className="grid gap-8 lg:grid-cols-[240px_1fr]">
           <aside className="min-w-0 lg:sticky lg:top-24 lg:self-start">
@@ -58,7 +58,7 @@ export default async function LearnPage({ searchParams }: { searchParams: Promis
               {category && <input type="hidden" name="category" value={category.slug} />}
               <input name="q" defaultValue={q} placeholder="Search lessons…" className="h-11 w-full rounded-full border border-border bg-surface px-5 text-sm outline-none focus:border-brand" />
             </form>
-            <div className="eyebrow mb-3 text-muted">Categories</div>
+            <div className="eyebrow mb-3 text-foreground">Categories</div>
             <nav className="no-scrollbar -mx-4 flex gap-2 overflow-x-auto px-4 lg:mx-0 lg:flex-col lg:px-0">
               <Link href={link({ category: undefined })} className={cn(chip(!category), "lg:rounded-xl lg:text-left")}>All topics</Link>
               {categories.map((c) => (
@@ -86,20 +86,20 @@ export default async function LearnPage({ searchParams }: { searchParams: Promis
                     <Reveal key={m.id} delay={(i % 3) * 70}>
                       <Link href={`/learn/${m.slug}`} className="group flex h-full flex-col overflow-hidden rounded-3xl border border-border bg-surface transition hover:-translate-y-1 hover:border-brand/50">
                         <div className="relative aspect-[16/9] overflow-hidden bg-surface-2">
-                          {m.coverImage ? <Img src={m.coverImage} alt="" fill sizes="(max-width: 640px) 100vw, 33vw" className="object-cover transition duration-700 group-hover:scale-105" /> : <div className="checker absolute inset-0 grid place-items-center"><Icon className="size-10 text-brand/60" /></div>}
+                          {m.coverImage ? <Img src={m.coverImage} alt="" fill sizes="(max-width: 640px) 100vw, 33vw" className="object-cover transition duration-700 group-hover:scale-105" /> : <div className="art-tile absolute inset-0 grid place-items-center"><span className="grid size-16 place-items-center rounded-2xl bg-white/[0.06] ring-1 ring-white/10 backdrop-blur-sm transition duration-500 group-hover:scale-110 group-hover:bg-brand/15"><Icon className="size-8 text-brand" /></span></div>}
                           <div className="absolute left-3 top-3 flex gap-1.5">
                             <Badge variant="solid">{humanize(m.type)}</Badge>
-                            {m.access === "MEMBERS" && <Badge variant="neutral" className="bg-black/70"><Lock className="size-3" />Members</Badge>}
+                            {m.access === "MEMBERS" && <Badge variant="neutral" className="on-dark bg-black/70"><Lock className="size-3.5" />Members</Badge>}
                           </div>
-                          {s && <Badge variant={s === "COMPLETED" ? "success" : "default"} className="absolute right-3 top-3 bg-black/70">{s === "COMPLETED" ? "Done" : "In progress"}</Badge>}
+                          {s && <Badge variant={s === "COMPLETED" ? "success" : "default"} className="absolute right-3 top-3 bg-black/70 on-dark">{s === "COMPLETED" ? "Done" : "In progress"}</Badge>}
                         </div>
                         <div className="flex flex-1 flex-col p-5">
-                          <div className="text-xs text-brand">{m.category.name}</div>
-                          <h3 className="mt-1.5 font-display text-lg font-bold leading-snug tracking-tight group-hover:text-brand">{m.title}</h3>
-                          <p className="mt-2 line-clamp-2 text-sm text-muted">{m.summary}</p>
-                          <div className="mt-auto flex gap-3 pt-4 text-xs text-muted">
-                            {m.level && <span>{m.level}</span>}
-                            {m.durationMinutes && <span className="flex items-center gap-1"><Clock className="size-3.5" />{m.durationMinutes} min</span>}
+                          <div className="text-[15px] font-bold text-brand-ink">{m.category.name}</div>
+                          <h3 className="mt-1.5 font-display text-[1.375rem] font-extrabold leading-snug tracking-tight group-hover:text-brand-ink">{m.title}</h3>
+                          <p className="mt-2 line-clamp-3 text-base leading-relaxed text-muted">{m.summary}</p>
+                          <div className="mt-auto flex gap-4 pt-4 text-sm text-muted">
+                            {m.level && <span className="font-semibold">{m.level}</span>}
+                            {m.durationMinutes && <span className="flex items-center gap-1"><Clock className="size-4" />{m.durationMinutes} min</span>}
                           </div>
                         </div>
                       </Link>

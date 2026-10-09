@@ -39,7 +39,7 @@ async function main() {
 
   // ── Settings ────────────────────────────────────────────────────────────
   await setting("general", { siteName: "Chess254", tagline: "Play. Improve. Belong.", siteUrl: process.env.NEXT_PUBLIC_APP_URL ?? "", timezone: "Africa/Nairobi", currency: "KES" });
-  await setting("brand", { logoText: "Chess", logoAccent: "254", primaryColor: "#00D8FF", heroImage: "/gallery/githinji.jpg", ogImage: "/gallery/launch-crowd.jpg" });
+  await setting("brand", { logoText: "Chess", logoAccent: "254", primaryColor: "#019C98", heroImage: "/gallery/githinji.jpg", ogImage: "/gallery/launch-crowd.jpg" });
   await setting("contact", { email: "", phone: "", whatsapp: "", contactIntro: "Questions about memberships, coaching or events? Send the team a message and we'll get back to you." });
   await setting("booking", {
     slotIntervalMinutes: 30,
@@ -331,33 +331,33 @@ async function main() {
   }
   const materials: Prisma.LearningMaterialUncheckedCreateInput[] = [
     {
-      categoryId: lc["Openings"], slug: "three-opening-principles", title: "Three opening principles", type: "ARTICLE", level: "Beginner", durationMinutes: 6, access: "PUBLIC", published: true,
+      categoryId: lc["Openings"], slug: "three-opening-principles", title: "Three opening principles", coverImage: "/images/learn/three-opening-principles.webp", type: "ARTICLE", level: "Beginner", durationMinutes: 6, access: "PUBLIC", published: true,
       summary: "Control the centre, develop your pieces and get your king safe — the habits that make every opening playable.",
       body: "## 1. Fight for the centre\nPawns and pieces on **e4, d4, e5 and d5** control the most squares and restrict your opponent. Start with a central pawn move.\n\n## 2. Develop with purpose\nBring knights and bishops out before moving the same piece twice. A useful rule: *knights before bishops*, and don't bring the queen out early where she can be chased.\n\n## 3. Castle early\nCastling tucks your king away and connects your rooks. Most strong players castle within the first ten moves.\n\n### Try it\nIn your next game, count how many pieces you've developed by move 8. Aim for at least four.",
     },
     {
-      categoryId: lc["Tactics"], slug: "the-knight-fork", title: "The knight fork", type: "ARTICLE", level: "Beginner", durationMinutes: 5, access: "PUBLIC", published: true,
+      categoryId: lc["Tactics"], slug: "the-knight-fork", title: "The knight fork", coverImage: "/images/learn/the-knight-fork.webp", type: "ARTICLE", level: "Beginner", durationMinutes: 5, access: "PUBLIC", published: true,
       summary: "How one knight can attack two pieces at once — and how to spot the squares where it happens.",
       body: "A **fork** is a single move that attacks two or more pieces. Knights are the best forkers because their jumps can't be blocked.\n\n### Spotting forks\n1. Look for enemy pieces that sit a knight's move apart from the same square.\n2. Check if that square is safe for your knight.\n3. The most powerful forks include a **check**, because your opponent must deal with the king first.\n\nSolve the fork puzzle in the puzzle room to practise the pattern.",
     },
     {
-      categoryId: lc["Endgames"], slug: "king-and-pawn-the-opposition", title: "King and pawn: the opposition", type: "ARTICLE", level: "Intermediate", durationMinutes: 8, access: "MEMBERS", published: true,
+      categoryId: lc["Endgames"], slug: "king-and-pawn-the-opposition", title: "King and pawn: the opposition", coverImage: "/images/learn/king-and-pawn-the-opposition.webp", type: "ARTICLE", level: "Intermediate", durationMinutes: 8, access: "MEMBERS", published: true,
       summary: "Why the side that does NOT have to move often wins king and pawn endings.",
       body: "Two kings facing each other with one square between them are *in opposition*. The player who is **not** to move holds the opposition — the other king must give way.\n\n### Why it matters\nWith king and pawn against king, the attacker wins when their king can get in front of the pawn and take the opposition. The defender draws by keeping the opposition in front of the pawn.\n\n### Rule of thumb\nPut your king **in front of** your pawn, not behind it. Then use the opposition to escort the pawn home.",
     },
     {
-      categoryId: lc["Game Analysis"], slug: "how-to-review-your-own-games", title: "How to review your own games", type: "ARTICLE", level: "All levels", durationMinutes: 7, access: "PUBLIC", published: true,
+      categoryId: lc["Game Analysis"], slug: "how-to-review-your-own-games", title: "How to review your own games", coverImage: "/images/learn/how-to-review-your-own-games.webp", type: "ARTICLE", level: "All levels", durationMinutes: 7, access: "PUBLIC", published: true,
       summary: "A simple routine for learning from every game you play — the same routine our coaches use before your lesson.",
       body: "1. **Write down your thoughts first.** Before using an engine, note where you felt unsure and what you were planning.\n2. **Find the turning points.** Where did the evaluation swing? Was it tactics, time, or a plan that didn't work?\n3. **Name the lesson.** Turn each mistake into one sentence you can remember: *\"Check every capture before moving.\"*\n4. **Bring it to your coach.** Your games and notes are what make your weekly session personal.",
     },
     {
-      categoryId: lc["Game Analysis"], slug: "the-opera-game-1858", title: "The Opera Game (Morphy, 1858)", type: "PGN", level: "All levels", durationMinutes: 10, access: "PUBLIC", published: true, downloadable: true,
+      categoryId: lc["Game Analysis"], slug: "the-opera-game-1858", title: "The Opera Game (Morphy, 1858)", coverImage: "/images/learn/the-opera-game-1858.webp", type: "PGN", level: "All levels", durationMinutes: 10, access: "PUBLIC", published: true, downloadable: true,
       summary: "Paul Morphy's famous miniature — rapid development, open lines and a beautiful finish.",
       body: "Play through the game and notice how every white move develops a piece or opens a line, while Black falls behind in development.",
       pgn: '[Event "Paris"]\n[Site "Paris FRA"]\n[Date "1858.??.??"]\n[White "Paul Morphy"]\n[Black "Duke Karl / Count Isouard"]\n[Result "1-0"]\n\n1. e4 e5 2. Nf3 d6 3. d4 Bg4 4. dxe5 Bxf3 5. Qxf3 dxe5 6. Bc4 Nf6 7. Qb3 Qe7 8. Nc3 c6 9. Bg5 b5 10. Nxb5 cxb5 11. Bxb5+ Nbd7 12. O-O-O Rd8 13. Rxd7 Rxd7 14. Rd1 Qe6 15. Bxd7+ Nxd7 16. Qb8+ Nxb8 17. Rd8# 1-0',
     },
     {
-      categoryId: lc["Beginner Chess"], slug: "checkmate-with-king-and-queen", title: "Checkmate with king and queen", type: "ARTICLE", level: "Beginner", durationMinutes: 6, access: "PUBLIC", published: true,
+      categoryId: lc["Beginner Chess"], slug: "checkmate-with-king-and-queen", title: "Checkmate with king and queen", coverImage: "/images/learn/checkmate-with-king-and-queen.webp", type: "ARTICLE", level: "Beginner", durationMinutes: 6, access: "PUBLIC", published: true,
       summary: "The first checkmate every player should master, in three steps.",
       body: "1. **Box the king in** — use your queen a knight's move away from the enemy king to shrink its space without giving check.\n2. **Bring your king up.** The queen cannot mate alone; walk your king towards the enemy king.\n3. **Deliver mate on the edge** — once the king is on the edge, protected by your king, the queen gives mate.\n\n⚠️ Watch out for stalemate: always make sure the enemy king has a legal move until you give checkmate.",
     },

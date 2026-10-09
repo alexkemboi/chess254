@@ -8,6 +8,7 @@ import { AdminMobileNav, AdminSidebar } from "@/components/admin/admin-nav";
 import { Logo } from "@/components/site/logo";
 import { logoutAction } from "@/actions/auth";
 import { humanize } from "@/lib/format";
+import { ThemeToggle } from "@/components/theme";
 
 export const metadata = { title: { default: "Admin", template: "%s · Admin" }, robots: { index: false, follow: false } };
 
@@ -19,7 +20,7 @@ export default async function AdminLayout({ children }: { children: React.ReactN
   const header = (
     <div className="flex items-center justify-between gap-2">
       <Logo text={brand.logoText} accent={brand.logoAccent} fallback={general.siteName} />
-      <span className="rounded-md bg-brand-soft px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wider text-brand">Admin</span>
+      <span className="rounded-md bg-brand-soft px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wider text-brand-ink">Admin</span>
     </div>
   );
   const footer = (
@@ -37,6 +38,7 @@ export default async function AdminLayout({ children }: { children: React.ReactN
           <span className="text-sm text-muted lg:hidden">Admin</span>
           <Link href="/" className="ml-auto flex items-center gap-1.5 text-sm text-muted hover:text-foreground">View site <ExternalLink className="size-3.5" /></Link>
           <Link href="/dashboard" className="text-sm text-muted hover:text-foreground">My dashboard</Link>
+          <ThemeToggle className="size-9" />
         </header>
         <main className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">{children}</main>
       </div>

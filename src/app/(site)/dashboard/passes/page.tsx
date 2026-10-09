@@ -21,9 +21,9 @@ export default async function PassesPage() {
         <div className="grid gap-3 sm:grid-cols-2">
           {passes.map((p) => (
             <div key={p.id} className="relative overflow-hidden rounded-3xl border border-border bg-surface p-6">
-              <div className="pointer-events-none absolute -right-4 -top-6 font-display text-8xl text-brand/10">♟</div>
+              <div className="pointer-events-none absolute -right-4 -top-6 font-display text-8xl text-brand-ink/10">♟</div>
               <div className="flex items-center justify-between"><span className="font-semibold">{p.service.name}</span><StatusBadge status={p.status} /></div>
-              <div className="mt-4 font-mono text-3xl font-bold tracking-widest text-brand">{p.code}</div>
+              <div className="mt-4 font-mono text-3xl font-bold tracking-widest text-brand-ink">{p.code}</div>
               {p.validUntil && <div className="mt-2 text-sm text-muted">{p.status === "ACTIVE" ? "Valid until" : "Expired"} {formatDateTime(p.validUntil, timezone)}</div>}
               {p.redeemedAt && <div className="mt-1 text-sm text-muted">Used {formatDateTime(p.redeemedAt, timezone)}</div>}
             </div>

@@ -88,11 +88,11 @@ export function PayPanel({ orderId, amountLabel, defaultPhone, inFlightPaymentId
       <div className="text-center" aria-live="polite">
         <div className="relative mx-auto grid size-24 place-items-center">
           <span className="absolute inset-0 animate-ping rounded-full bg-brand/20" />
-          <span className="relative grid size-20 place-items-center rounded-full bg-brand text-black"><Smartphone className="size-9" /></span>
+          <span className="relative grid size-20 place-items-center rounded-full bg-brand text-brand-foreground"><Smartphone className="size-9" /></span>
         </div>
         <h2 className="mt-6 font-display text-2xl font-extrabold tracking-tight">Check your phone</h2>
         <p className="mx-auto mt-2 max-w-sm text-muted">Enter your M-Pesa PIN on the prompt to pay {amountLabel}. This page updates automatically once Safaricom confirms.</p>
-        <div className="mt-6 inline-flex items-center gap-2 text-sm text-muted"><Loader2 className="size-4 animate-spin text-brand" />Waiting for confirmation{elapsed ? ` · ${elapsed}s` : "…"}</div>
+        <div className="mt-6 inline-flex items-center gap-2 text-sm text-muted"><Loader2 className="size-4 animate-spin text-brand-ink" />Waiting for confirmation{elapsed ? ` · ${elapsed}s` : "…"}</div>
       </div>
     );
   }

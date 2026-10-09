@@ -24,7 +24,7 @@ function NavList({ groups, onNavigate }: { groups: Group[]; onNavigate?: () => v
             {g.items.map((item) => {
               const Icon = ICONS[item.icon] ?? Circle;
               return (
-                <Link key={item.href} href={item.href} onClick={onNavigate} className={cn("flex items-center gap-2.5 rounded-lg px-3 py-2 text-[13px] font-medium transition", active(item.href) ? "bg-brand-soft text-brand" : "text-muted hover:bg-white/5 hover:text-foreground")}>
+                <Link key={item.href} href={item.href} onClick={onNavigate} className={cn("flex items-center gap-2.5 rounded-lg px-3 py-2 text-[13px] font-medium transition", active(item.href) ? "bg-brand-soft text-brand-ink" : "text-muted hover:bg-foreground/5 hover:text-foreground")}>
                   <Icon className="size-4" />
                   {item.label}
                 </Link>
@@ -51,7 +51,7 @@ export function AdminMobileNav({ groups, header }: { groups: Group[]; header: Re
   const [open, setOpen] = React.useState(false);
   return (
     <D.Root open={open} onOpenChange={setOpen}>
-      <D.Trigger className="grid size-10 place-items-center rounded-full hover:bg-white/5 lg:hidden" aria-label="Open admin menu"><Menu className="size-5" /></D.Trigger>
+      <D.Trigger className="grid size-10 place-items-center rounded-full hover:bg-foreground/5 lg:hidden" aria-label="Open admin menu"><Menu className="size-5" /></D.Trigger>
       <SheetContent title="Admin menu" side="left">
         <div className="mb-6">{header}</div>
         <NavList groups={groups} onNavigate={() => setOpen(false)} />

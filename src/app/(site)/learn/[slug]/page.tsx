@@ -90,7 +90,7 @@ export default async function MaterialPage({ params }: { params: Promise<{ slug:
         </div>
       ) : (
         <div className="mt-10 rounded-3xl border border-brand/30 bg-gradient-to-br from-brand/10 to-surface p-8 text-center sm:p-12">
-          <Lock className="mx-auto size-10 text-brand" />
+          <Lock className="mx-auto size-10 text-brand-ink" />
           <h2 className="mt-4 font-display text-3xl font-extrabold tracking-tight">Members-only lesson</h2>
           <p className="mx-auto mt-2 max-w-md text-muted">{access.reason}</p>
           <div className="mt-6 flex justify-center gap-2">
@@ -106,7 +106,7 @@ export default async function MaterialPage({ params }: { params: Promise<{ slug:
           <div className="mt-5 grid gap-3 sm:grid-cols-3">
             {related.map((r) => (
               <Link key={r.id} href={`/learn/${r.slug}`} className="rounded-2xl border border-border bg-surface p-5 transition hover:border-brand/50">
-                <div className="text-xs text-brand">{humanize(r.type)}</div>
+                <div className="text-xs text-brand-ink">{humanize(r.type)}</div>
                 <div className="mt-1 font-semibold">{r.title}</div>
               </Link>
             ))}

@@ -49,7 +49,7 @@ export default async function SearchPage({ searchParams }: { searchParams: Promi
             <h2 className="eyebrow mb-3">{g.title}</h2>
             <ul className="divide-y divide-border rounded-2xl border border-border bg-surface">
               {g.items.map((i) => (
-                <li key={i.href}><Link href={i.href} className="flex items-center justify-between gap-4 px-5 py-4 hover:bg-white/[0.03]"><span className="font-medium">{i.label}</span><span className="truncate text-sm text-muted">{i.meta}</span></Link></li>
+                <li key={i.href}><Link href={i.href} className="flex items-center justify-between gap-4 px-5 py-4 hover:bg-foreground/[0.03]"><span className="font-medium">{i.label}</span><span className="truncate text-sm text-muted">{i.meta}</span></Link></li>
               ))}
             </ul>
           </section>

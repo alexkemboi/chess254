@@ -26,7 +26,7 @@ export default async function CoachSessions({ searchParams }: { searchParams: Pr
     <div>
       <PageHeader eyebrow="Sessions" title="Your sessions" />
       <div className="mb-5 flex gap-2">
-        {Object.entries(TABS).map(([k, label]) => <Link key={k} href={`/coach/sessions?tab=${k}`} className={cn("rounded-full border px-4 py-2 text-sm", tab === k ? "border-brand bg-brand text-black" : "border-border text-muted")}>{label}</Link>)}
+        {Object.entries(TABS).map(([k, label]) => <Link key={k} href={`/coach/sessions?tab=${k}`} className={cn("rounded-full border px-4 py-2 text-sm", tab === k ? "border-brand bg-brand text-brand-foreground" : "border-border text-muted")}>{label}</Link>)}
       </div>
       {bookings.length === 0 ? (
         <EmptyState icon={<CalendarClock />} title="No sessions" />

@@ -11,10 +11,10 @@ export function CheckoutPlanButton({ planId, label }: { planId: string; label: s
   );
 }
 
-export function CheckoutServiceButton({ serviceId, label }: { serviceId: string; label: string }) {
+export function CheckoutServiceButton({ serviceId, label, size }: { serviceId: string; label: string; size?: "default" | "lg" }) {
   return (
     <ActionForm action={() => checkoutServiceAction(serviceId)} successMessage={false}>
-      <SubmitButton variant="secondary" className="w-full">{label}</SubmitButton>
+      <SubmitButton variant="secondary" size={size} className="w-full">{label}</SubmitButton>
     </ActionForm>
   );
 }

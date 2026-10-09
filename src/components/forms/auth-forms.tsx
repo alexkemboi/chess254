@@ -24,9 +24,9 @@ export function LoginForm({ next }: { next?: string }) {
       <input type="hidden" name="next" value={next ?? ""} />
       <Field name="email" label="Email"><Input id="email" name="email" type="email" autoComplete="email" required /></Field>
       <Field name="password" label="Password"><PasswordInput id="password" name="password" autoComplete="current-password" required /></Field>
-      <div className="-mt-2 text-right text-sm"><Link href="/forgot-password" className="text-brand hover:underline">Forgot password?</Link></div>
+      <div className="-mt-2 text-right text-sm"><Link href="/forgot-password" className="text-brand-ink hover:underline">Forgot password?</Link></div>
       <SubmitButton size="lg" pendingLabel="Signing in…">Sign in</SubmitButton>
-      <p className="text-center text-sm text-muted">New here? <Link href={`/register${next ? `?next=${encodeURIComponent(next)}` : ""}`} className="font-semibold text-brand hover:underline">Create an account</Link></p>
+      <p className="text-center text-sm text-muted">New here? <Link href={`/register${next ? `?next=${encodeURIComponent(next)}` : ""}`} className="font-semibold text-brand-ink hover:underline">Create an account</Link></p>
     </ActionForm>
   );
 }
@@ -56,7 +56,7 @@ export function RegisterForm({ guidelines }: { guidelines: string }) {
         </label>
       </Field>
       <SubmitButton size="lg" pendingLabel="Creating account…">Create account</SubmitButton>
-      <p className="text-center text-sm text-muted">Already a member? <Link href="/login" className="font-semibold text-brand hover:underline">Sign in</Link></p>
+      <p className="text-center text-sm text-muted">Already a member? <Link href="/login" className="font-semibold text-brand-ink hover:underline">Sign in</Link></p>
     </ActionForm>
   );
 }
@@ -75,7 +75,7 @@ export function ForgotForm() {
     <ActionForm action={forgotPasswordAction} className="grid gap-5" resetOnSuccess>
       <Field name="email" label="Email"><Input id="email" name="email" type="email" autoComplete="email" required /></Field>
       <SubmitButton size="lg">Send reset link</SubmitButton>
-      <p className="text-center text-sm text-muted"><Link href="/login" className="text-brand hover:underline">Back to sign in</Link></p>
+      <p className="text-center text-sm text-muted"><Link href="/login" className="text-brand-ink hover:underline">Back to sign in</Link></p>
     </ActionForm>
   );
 }

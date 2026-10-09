@@ -36,7 +36,7 @@ export default async function NotificationsPage({ searchParams }: { searchParams
           ))}
         </ul>
       )}
-      {total > page * 30 && <Link href={`/dashboard/notifications?page=${page + 1}`} className="mt-4 inline-block text-sm text-brand">Older →</Link>}
+      {total > page * 30 && <Link href={`/dashboard/notifications?page=${page + 1}`} className="mt-4 inline-block text-sm text-brand-ink">Older →</Link>}
     </div>
   );
 }

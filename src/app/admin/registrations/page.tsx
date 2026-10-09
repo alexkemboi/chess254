@@ -40,7 +40,7 @@ export default async function Registrations({ searchParams }: { searchParams: Pr
         <div className="mb-6 grid grid-cols-3 gap-3">
           <Stat label="Confirmed" value={event._count.registrations} hint={event.capacity ? `of ${event.capacity} seats` : "No capacity limit"} />
           <Stat label="Checked in" value={attended} />
-          <Stat label="Date" value={<span className="text-xl">{formatDate(event.startsAt, timezone)}</span>} hint={<Link href={`/admin/manage/events/${event.id}`} className="text-brand">Edit event</Link>} />
+          <Stat label="Date" value={<span className="text-xl">{formatDate(event.startsAt, timezone)}</span>} hint={<Link href={`/admin/manage/events/${event.id}`} className="text-brand-ink">Edit event</Link>} />
         </div>
       )}
       <div className="mb-4 flex flex-wrap gap-2">
@@ -56,7 +56,7 @@ export default async function Registrations({ searchParams }: { searchParams: Pr
               {rows.map((r) => (
                 <TR key={r.id}>
                   <TD className="font-mono text-xs">{r.reference}</TD>
-                  <TD><Link href={`/admin/users/${r.userId}`} className="hover:text-brand">{r.user.name}</Link><div className="text-xs text-muted">{r.user.phone ?? r.user.email}</div></TD>
+                  <TD><Link href={`/admin/users/${r.userId}`} className="hover:text-brand-ink">{r.user.name}</Link><div className="text-xs text-muted">{r.user.phone ?? r.user.email}</div></TD>
                   <TD>{r.event.title}</TD>
                   <TD className="font-mono text-xs">{r.price.greaterThan(0) ? formatMoney(r.price, r.currency) : "Free"}</TD>
                   <TD className="text-muted">{formatDateTime(r.createdAt, timezone)}</TD>

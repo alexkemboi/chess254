@@ -33,7 +33,7 @@ export default async function JoinPage({ params }: { params: Promise<{ slug: str
           <p className="mt-3 text-muted">{plan.description}</p>
           <ul className="mt-6 grid gap-3">
             {plan.features.map((f) => (
-              <li key={f.id} className="flex gap-3 text-sm"><Check className="mt-0.5 size-4 shrink-0 text-brand" />{f.label}</li>
+              <li key={f.id} className="flex gap-3 text-sm"><Check className="mt-0.5 size-4 shrink-0 text-brand-ink" />{f.label}</li>
             ))}
           </ul>
         </div>
@@ -42,7 +42,7 @@ export default async function JoinPage({ params }: { params: Promise<{ slug: str
           <div className="mt-2 font-display text-5xl font-black tracking-tight">{formatMoney(plan.price, plan.currency)}</div>
           <div className="text-sm text-muted">per {period.short}</div>
           {current?.expiresAt && (
-            <div className="mt-6 rounded-2xl border border-border bg-black/30 p-4 text-sm">
+            <div className="mt-6 rounded-2xl border border-border bg-background/60 p-4 text-sm">
               <Badge variant="success">Active</Badge>
               <p className="mt-2 text-muted">Your membership runs until <span className="text-foreground">{formatDate(current.expiresAt, settings.general.timezone)}</span>.{!renewBlocked && " Renewing now adds a full period on top."}</p>
             </div>
@@ -53,7 +53,7 @@ export default async function JoinPage({ params }: { params: Promise<{ slug: str
             ) : (
               <CheckoutPlanButton planId={plan.id} label={current ? "Renew with M-Pesa" : "Continue to payment"} />
             )}
-            <p className="mt-4 flex items-center gap-2 text-xs text-muted"><ShieldCheck className="size-3.5 text-brand" />Activated automatically once M-Pesa confirms your payment.</p>
+            <p className="mt-4 flex items-center gap-2 text-xs text-muted"><ShieldCheck className="size-3.5 text-brand-ink" />Activated automatically once M-Pesa confirms your payment.</p>
           </div>
         </div>
       </div>

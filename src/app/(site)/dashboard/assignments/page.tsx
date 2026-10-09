@@ -31,7 +31,7 @@ export default async function AssignmentsPage() {
               </div>
               <div className="mt-1 text-sm text-muted">From {a.coach.user.name} · set {formatDate(a.createdAt, timezone)}{a.dueAt ? ` · due ${formatDate(a.dueAt, timezone)}` : ""}</div>
               {a.instructions && <p className="mt-4 whitespace-pre-line">{a.instructions}</p>}
-              {a.material && <Link href={`/learn/${a.material.slug}`} className="mt-3 inline-block text-sm font-semibold text-brand hover:underline">Open lesson: {a.material.title} →</Link>}
+              {a.material && <Link href={`/learn/${a.material.slug}`} className="mt-3 inline-block text-sm font-semibold text-brand-ink hover:underline">Open lesson: {a.material.title} →</Link>}
               {a.feedback && (
                 <div className="mt-4 rounded-2xl border border-success/30 bg-success/10 p-4 text-sm">
                   <div className="text-xs font-semibold uppercase tracking-wide text-success">Coach feedback</div>

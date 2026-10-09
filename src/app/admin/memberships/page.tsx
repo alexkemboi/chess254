@@ -55,7 +55,7 @@ export default async function AdminMemberships({ searchParams }: { searchParams:
                 const live = m.status === "ACTIVE" && m.expiresAt && m.expiresAt > now;
                 return (
                   <TR key={m.id}>
-                    <TD><Link href={`/admin/users/${m.userId}`} className="font-medium hover:text-brand">{m.user.name}</Link><div className="text-xs text-muted">{m.user.email}</div></TD>
+                    <TD><Link href={`/admin/users/${m.userId}`} className="font-medium hover:text-brand-ink">{m.user.name}</Link><div className="text-xs text-muted">{m.user.email}</div></TD>
                     <TD>{m.plan.name}</TD>
                     <TD>{m.startsAt ? formatDate(m.startsAt, timezone) : "—"}</TD>
                     <TD>{m.expiresAt ? formatDate(m.expiresAt, timezone) : "—"}</TD>

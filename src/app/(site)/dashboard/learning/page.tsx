@@ -36,7 +36,7 @@ export default async function MyLearningPage() {
               const completed = c.materials.filter((m) => done.has(m.id)).length;
               return (
                 <Link key={c.id} href={`/learn?category=${c.slug}`} className="group">
-                  <div className="flex justify-between text-sm"><span className="group-hover:text-brand">{c.name}</span><span className="text-muted">{completed}/{c.materials.length}</span></div>
+                  <div className="flex justify-between text-sm"><span className="group-hover:text-brand-ink">{c.name}</span><span className="text-muted">{completed}/{c.materials.length}</span></div>
                   <div className="mt-2 h-2 overflow-hidden rounded-full bg-surface-3"><div className="h-full rounded-full bg-brand" style={{ width: `${(completed / c.materials.length) * 100}%` }} /></div>
                 </Link>
               );
@@ -52,7 +52,7 @@ export default async function MyLearningPage() {
               <li key={p.id}>
                 <Link href={`/learn/${p.material.slug}`} className="flex items-center justify-between gap-4 rounded-2xl border border-border bg-surface p-4 hover:border-border-strong">
                   <div><div className="font-semibold">{p.material.title}</div><div className="text-xs text-muted">{p.material.category.name} · {humanize(p.material.type)}</div></div>
-                  <span className={p.status === "COMPLETED" ? "text-sm text-success" : "text-sm text-brand"}>{p.status === "COMPLETED" ? `Completed ${formatDate(p.completedAt!, timezone)}` : "Continue →"}</span>
+                  <span className={p.status === "COMPLETED" ? "text-sm text-success" : "text-sm text-brand-ink"}>{p.status === "COMPLETED" ? `Completed ${formatDate(p.completedAt!, timezone)}` : "Continue →"}</span>
                 </Link>
               </li>
             ))}

@@ -36,7 +36,7 @@ export default async function CoachMembers() {
             return (
               <div key={m.id} className="rounded-3xl border border-border bg-surface p-5">
                 <div className="flex items-center gap-3">
-                  <span className="grid size-11 place-items-center rounded-full bg-brand-soft font-bold text-brand">{initials(m.name)}</span>
+                  <span className="grid size-11 place-items-center rounded-full bg-brand-soft font-bold text-brand-ink">{initials(m.name)}</span>
                   <div className="min-w-0">
                     <div className="truncate font-semibold">{m.name}</div>
                     <div className="truncate text-xs text-muted">{m.memberProfile?.chessLevel ?? "Level not set"}{m.memberProfile?.rating ? ` · ${m.memberProfile.rating}` : ""}</div>

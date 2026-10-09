@@ -137,7 +137,7 @@ export function BookingCalendar({ sessionTypes, coaches, timezone, signedIn, ini
               >
                 <div className="flex items-start justify-between gap-2">
                   <span className="font-semibold">{s.name}</span>
-                  <span className="font-mono text-sm text-brand">{s.priceLabel}</span>
+                  <span className="font-mono text-sm text-brand-ink">{s.priceLabel}</span>
                 </div>
                 <p className="mt-1.5 line-clamp-2 text-sm text-muted">{s.description}</p>
                 <div className="mt-3 flex flex-wrap gap-2 text-xs text-muted">
@@ -166,7 +166,7 @@ export function BookingCalendar({ sessionTypes, coaches, timezone, signedIn, ini
               <Button size="icon-sm" variant="ghost" onClick={() => setMonth(shiftMonth(month, -1))} disabled={month <= monthKeyOf(today)} aria-label="Previous month"><ChevronLeft /></Button>
               <div className="flex items-center gap-2 font-semibold">
                 {formatDate(new Date(Date.UTC(y, m - 1, 15)), "UTC", { month: "long", year: "numeric" })}
-                {loadingMonth && <Loader2 className="size-4 animate-spin text-brand" />}
+                {loadingMonth && <Loader2 className="size-4 animate-spin text-brand-ink" />}
               </div>
               <Button size="icon-sm" variant="ghost" onClick={() => setMonth(shiftMonth(month, 1))} aria-label="Next month"><ChevronRight /></Button>
             </div>
@@ -186,7 +186,7 @@ export function BookingCalendar({ sessionTypes, coaches, timezone, signedIn, ini
                     onClick={() => setDate(key)}
                     className={cn(
                       "relative aspect-square rounded-xl text-sm font-medium transition",
-                      key === date ? "bg-brand text-black" : available ? "bg-surface-2 hover:bg-surface-3 hover:ring-1 hover:ring-brand" : "text-muted-2",
+                      key === date ? "bg-brand text-brand-foreground" : available ? "bg-surface-2 hover:bg-surface-3 hover:ring-1 hover:ring-brand" : "text-muted-2",
                       key === today && key !== date && "ring-1 ring-border-strong",
                     )}
                     aria-label={`${key}${available ? `, ${available} slots` : ", unavailable"}`}
@@ -216,7 +216,7 @@ export function BookingCalendar({ sessionTypes, coaches, timezone, signedIn, ini
                 {[...byCoach.entries()].map(([cid, list]) => (
                   <div key={cid} className="rounded-2xl border border-border bg-surface p-4">
                     <div className="mb-3 flex items-center gap-3">
-                      <span className="grid size-9 place-items-center rounded-full bg-brand-soft text-xs font-bold text-brand">{initials(list[0].coachName)}</span>
+                      <span className="grid size-9 place-items-center rounded-full bg-brand-soft text-xs font-bold text-brand-ink">{initials(list[0].coachName)}</span>
                       <span className="font-semibold">{list[0].coachName}</span>
                     </div>
                     <div className="grid grid-cols-3 gap-2 sm:grid-cols-5">
@@ -225,7 +225,7 @@ export function BookingCalendar({ sessionTypes, coaches, timezone, signedIn, ini
                           key={s.startsAt}
                           type="button"
                           onClick={() => setSlot(s)}
-                          className={cn("rounded-xl border px-2 py-2.5 text-sm font-semibold transition", slot?.startsAt === s.startsAt && slot.coachId === s.coachId ? "border-brand bg-brand text-black" : "border-border hover:border-brand")}
+                          className={cn("rounded-xl border px-2 py-2.5 text-sm font-semibold transition", slot?.startsAt === s.startsAt && slot.coachId === s.coachId ? "border-brand bg-brand text-brand-foreground" : "border-border hover:border-brand")}
                         >
                           {formatTime(s.startsAt, timezone)}
                           {s.capacity > 1 && <span className="block text-[10px] font-normal opacity-70">{s.remaining} left</span>}
@@ -274,7 +274,7 @@ export function BookingCalendar({ sessionTypes, coaches, timezone, signedIn, ini
 function StepLabel({ n, label }: { n: number; label: string }) {
   return (
     <div className="mb-4 flex items-center gap-3">
-      <span className="grid size-7 place-items-center rounded-full bg-brand text-xs font-black text-black">{n}</span>
+      <span className="grid size-7 place-items-center rounded-full bg-brand text-xs font-black text-brand-foreground">{n}</span>
       <h2 className="font-display text-xl font-bold tracking-tight">{label}</h2>
     </div>
   );
@@ -284,7 +284,7 @@ function Row({ label, value, highlight }: { label: string; value: string; highli
   return (
     <div className="flex items-center justify-between gap-4 border-b border-border pb-3 last:border-0">
       <dt className="text-muted">{label}</dt>
-      <dd className={cn("text-right font-medium", highlight && "font-mono text-brand")}>{value}</dd>
+      <dd className={cn("text-right font-medium", highlight && "font-mono text-brand-ink")}>{value}</dd>
     </div>
   );
 }

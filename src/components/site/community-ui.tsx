@@ -25,7 +25,7 @@ export function LikeButton({ postId, liked, count, signedIn }: { postId: string;
           if (!res.ok) toast.error(res.error);
         }
       }}
-      className={cn("inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-sm transition", state.liked ? "bg-danger/12 text-danger" : "text-muted hover:bg-white/5 hover:text-foreground")}
+      className={cn("inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-sm transition", state.liked ? "bg-danger/12 text-danger" : "text-muted hover:bg-foreground/5 hover:text-foreground")}
       aria-pressed={state.liked}
       aria-label="Like"
     >

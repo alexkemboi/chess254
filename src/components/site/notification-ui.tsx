@@ -17,7 +17,7 @@ export function NotificationLink({ id, href, unread, children }: { id: string; h
   return (
     <button
       type="button"
-      className="flex w-full items-start gap-4 p-5 text-left hover:bg-white/[0.03]"
+      className="flex w-full items-start gap-4 p-5 text-left hover:bg-foreground/[0.03]"
       onClick={async () => {
         if (unread) await markNotificationReadAction(id);
         if (href) router.push(href);

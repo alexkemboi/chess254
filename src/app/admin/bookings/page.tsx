@@ -50,7 +50,7 @@ export default async function AdminBookings({ searchParams }: { searchParams: Pr
                 return (
                   <TR key={b.id}>
                     <TD className="font-mono text-xs">{b.reference}</TD>
-                    <TD><Link href={`/admin/users/${b.memberId}`} className="hover:text-brand">{b.member.name}</Link></TD>
+                    <TD><Link href={`/admin/users/${b.memberId}`} className="hover:text-brand-ink">{b.member.name}</Link></TD>
                     <TD>{b.sessionType.name}</TD>
                     <TD>{b.coach.user.name}</TD>
                     <TD className="whitespace-nowrap">{formatDateTime(b.startsAt, timezone)}</TD>

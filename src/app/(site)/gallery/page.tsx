@@ -29,10 +29,10 @@ export default async function GalleryPage({ searchParams }: { searchParams: Prom
     include: { category: true },
     orderBy: [{ featured: "desc" }, { position: "asc" }],
   });
-  const chip = (active: boolean) => cn("whitespace-nowrap rounded-full border px-4 py-2 text-sm font-medium transition", active ? "border-brand bg-brand text-black" : "border-border text-muted hover:text-foreground");
+  const chip = (active: boolean) => cn("whitespace-nowrap rounded-full border px-4 py-2 text-sm font-medium transition", active ? "border-brand bg-brand text-brand-foreground" : "border-border text-muted hover:text-foreground");
   return (
     <>
-      <PageHero eyebrow="Gallery" title="The clubhouse" highlight="in motion." body="Players, coaching, community nights and tournaments." />
+      <PageHero glyph="♝" eyebrow="Gallery" title="The clubhouse" highlight="in motion." body="Players, coaching, community nights and tournaments." />
       <Container className="py-12">
         <div className="mb-8 flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
           <div className="no-scrollbar -mx-4 flex gap-2 overflow-x-auto px-4">

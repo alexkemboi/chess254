@@ -96,7 +96,7 @@ export function ChessBoard({ fen, orientation = "white", interactive = false, on
                   </span>
                 )}
                 {target !== undefined && (
-                  <span className={cn("pointer-events-none absolute rounded-full", target ? "inset-1 border-4 border-black/30" : "size-[28%] bg-black/30")} />
+                  <span className={cn("pointer-events-none absolute rounded-full", target ? "inset-1 border-4 border-black/30" : "size-[28%] bg-background/60")} />
                 )}
                 {showCoordinates && f === files[0] && <span className={cn("pointer-events-none absolute left-1 top-0.5 text-[9px] font-bold", dark ? "text-white/70" : "text-[#2a6f7b]")}>{8 - r}</span>}
                 {showCoordinates && r === ranks[7] && <span className={cn("pointer-events-none absolute bottom-0 right-1 text-[9px] font-bold", dark ? "text-white/70" : "text-[#2a6f7b]")}>{FILES[f]}</span>}
@@ -106,12 +106,12 @@ export function ChessBoard({ fen, orientation = "white", interactive = false, on
         )}
       </div>
       {promotion && (
-        <div className="absolute inset-0 grid place-items-center bg-black/70 backdrop-blur-sm">
+        <div className="absolute inset-0 grid place-items-center bg-black/70 backdrop-blur-sm on-dark">
           <div className="rounded-2xl border border-border bg-surface p-4 text-center">
             <div className="mb-3 text-sm font-semibold">Promote to</div>
             <div className="flex gap-2">
               {(["q", "r", "b", "n"] as const).map((p) => (
-                <button key={p} type="button" className="grid size-14 place-items-center rounded-xl bg-surface-3 text-4xl hover:bg-brand hover:text-black" onClick={() => { onMove?.({ ...promotion, promotion: p }); setPromotion(null); }} aria-label={`Promote to ${p}`}>
+                <button key={p} type="button" className="grid size-14 place-items-center rounded-xl bg-surface-3 text-4xl hover:bg-brand hover:text-brand-foreground" onClick={() => { onMove?.({ ...promotion, promotion: p }); setPromotion(null); }} aria-label={`Promote to ${p}`}>
                   {GLYPHS[p]}{"︎"}
                 </button>
               ))}

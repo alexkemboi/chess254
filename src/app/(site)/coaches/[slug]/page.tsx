@@ -41,7 +41,7 @@ export default async function CoachPage({ params }: { params: Promise<{ slug: st
       <Link href="/coaches" className="text-sm text-muted hover:text-foreground">← All coaches</Link>
       <div className="mt-6 grid gap-10 lg:grid-cols-[380px_1fr]">
         <div className="relative aspect-[4/5] overflow-hidden rounded-3xl border border-border bg-surface-2">
-          {coach.imageUrl ? <Img src={coach.imageUrl} alt={coach.user.name} fill sizes="380px" className="object-cover" priority /> : <div className="checker absolute inset-0 grid place-items-center font-display text-8xl font-black text-brand/60">{initials(coach.user.name)}</div>}
+          {coach.imageUrl ? <Img src={coach.imageUrl} alt={coach.user.name} fill sizes="380px" className="object-cover" priority /> : <div className="art-tile absolute inset-0 grid place-items-center"><span aria-hidden className="absolute -right-8 top-4 font-display text-[300px] leading-none text-white/[0.05]">♚</span><span className="relative font-display text-8xl font-black tracking-tight text-brand/80">{initials(coach.user.name)}</span></div>}
         </div>
         <div>
           {coach.title && <div className="eyebrow">{coach.title}</div>}
@@ -58,7 +58,7 @@ export default async function CoachPage({ params }: { params: Promise<{ slug: st
               <div className="mt-4 grid gap-3 sm:grid-cols-2">
                 {coach.sessionTypes.map((s) => (
                   <Link key={s.id} href={`/book?type=${s.id}&coach=${coach.slug}`} className="group rounded-2xl border border-border bg-surface p-5 transition hover:border-brand">
-                    <div className="flex justify-between gap-2"><span className="font-semibold group-hover:text-brand">{s.name}</span><span className="font-mono text-sm text-brand">{s.price.greaterThan(0) ? formatMoney(s.price, s.currency) : "Included"}</span></div>
+                    <div className="flex justify-between gap-2"><span className="font-semibold group-hover:text-brand-ink">{s.name}</span><span className="font-mono text-sm text-brand-ink">{s.price.greaterThan(0) ? formatMoney(s.price, s.currency) : "Included"}</span></div>
                     <div className="mt-2 flex items-center gap-1.5 text-xs text-muted"><Clock className="size-3.5" />{s.durationMinutes} min</div>
                   </Link>
                 ))}

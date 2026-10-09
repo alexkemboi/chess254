@@ -75,7 +75,7 @@ export function PgnViewer({ pgn, compact = false }: { pgn: string; compact?: boo
                 const m = history[idx];
                 if (!m) return <span key={side} />;
                 return (
-                  <button key={side} type="button" onClick={() => setPly(idx + 1)} className={cn("rounded-md px-2 py-1 text-left hover:bg-white/5", ply === idx + 1 && "bg-brand text-black hover:bg-brand")}>
+                  <button key={side} type="button" onClick={() => setPly(idx + 1)} className={cn("rounded-md px-2 py-1 text-left hover:bg-foreground/5", ply === idx + 1 && "bg-brand text-brand-foreground hover:bg-brand")}>
                     {m.san}
                   </button>
                 );
