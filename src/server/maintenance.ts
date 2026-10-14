@@ -3,6 +3,7 @@ import { prisma } from "@/server/db";
 import { getAllSettings } from "@/server/settings";
 import { notify, emailNotifications } from "@/server/notifications";
 import { sweepPayments } from "@/server/payments/service";
+import { syncPulledTransactionsIfEnabled } from "@/server/payments/mpesa-pull";
 import { pruneRateLimits } from "@/server/rate-limit";
 import { formatDate, formatDateTime } from "@/lib/format";
 
@@ -14,6 +15,7 @@ export async function runMaintenance() {
   const ids: string[] = [];
 
   const payments = await sweepPayments();
+  const mpesaPull = await syncPulledTransactionsIfEnabled();
 
   // Memberships past their end date.
   const lapsed = await prisma.membership.findMany({ where: { status: "ACTIVE", expiresAt: { lte: now } }, include: { plan: true } });
@@ -53,5 +55,5 @@ export async function runMaintenance() {
   await prisma.session.deleteMany({ where: { expiresAt: { lt: now } } });
   await pruneRateLimits();
   await emailNotifications(ids);
-  return { payments, membershipsExpired: lapsed.length, notifications: ids.length };
+  return { payments, mpesaPull, membershipsExpired: lapsed.length, notifications: ids.length };
 }

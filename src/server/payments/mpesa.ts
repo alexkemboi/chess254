@@ -26,6 +26,25 @@ export function mpesaCallbackPath() {
   return `/api/payments/mpesa/callback/${webhookToken("mpesa")}`;
 }
 
+export function mpesaPullCallbackPath() {
+  return `/api/payments/mpesa/pull/${webhookToken("mpesa-pull")}`;
+}
+
+/** One received payment as reported by the Pull Transactions API. */
+export type PulledTransaction = {
+  transactionId: string;
+  transactionDate: Date;
+  msisdn: string | null;
+  sender: string | null;
+  transactionType: string | null;
+  billReference: string | null;
+  amount: number;
+  organizationName: string | null;
+  raw: Record<string, unknown>;
+};
+
+const PULL_PAGE_LIMIT = 20;
+
 export class MpesaPaymentProvider implements PaymentProvider {
   readonly key = MPESA_PROVIDER_KEY;
   readonly displayName = "M-Pesa";
@@ -43,6 +62,7 @@ export class MpesaPaymentProvider implements PaymentProvider {
       config,
       environment,
       shortcode,
+      callbackBase,
       partyB,
       transactionType,
       callbackUrl: `${callbackBase}${mpesaCallbackPath()}`,
@@ -190,6 +210,70 @@ export class MpesaPaymentProvider implements PaymentProvider {
     }
   }
 
+  /** Daraja wants pull windows as "YYYY-MM-DD HH:mm:ss" in East Africa Time. */
+  private pullDate(date: Date) {
+    const p = zonedParts(date, DARAJA_TIMEZONE);
+    const two = (n: number) => String(n).padStart(2, "0");
+    return `${p.year}-${two(p.month)}-${two(p.day)} ${two(p.hour)}:${two(p.minute)}:${two(date.getUTCSeconds())}`;
+  }
+
+  private async pullContext() {
+    const c = await this.context();
+    return { ...c, pullShortcode: c.config?.pullShortcode || c.shortcode, nominated: c.config?.pullNominatedNumber || "" };
+  }
+
+  /** One-time registration of the shortcode with the Pull Transactions API. */
+  async registerPull(): Promise<{ ok: boolean; message: string; raw: unknown }> {
+    const c = await this.pullContext();
+    if (!c.pullShortcode) return { ok: false, message: "Set the shortcode first.", raw: null };
+    if (!c.nominated) return { ok: false, message: "Set the nominated M-Pesa number first.", raw: null };
+    try {
+      const { body } = await this.post("/pulltransactions/v1/register", {
+        ShortCode: c.pullShortcode,
+        RequestType: "Pull",
+        NominatedNumber: c.nominated,
+        CallBackURL: `${c.callbackBase}${mpesaPullCallbackPath()}`,
+      });
+      const description = String(body.ResponseDescription ?? body.errorMessage ?? body.ResponseMessage ?? "");
+      const code = String(body.ResponseStatus ?? body.ResponseCode ?? "");
+      const ok = !body.errorCode && (["0", "1000", "1001"].includes(code) || /success|already registered/i.test(description));
+      return { ok, message: description || (ok ? "Registered" : "Registration failed"), raw: body };
+    } catch (error) {
+      return { ok: false, message: "We could not reach M-Pesa.", raw: { error: error instanceof Error ? error.message : String(error) } };
+    }
+  }
+
+  /** Payments received on the shortcode between two instants (Daraja allows roughly the last 48 hours). */
+  async pullTransactions(start: Date, end: Date): Promise<PulledTransaction[]> {
+    const c = await this.pullContext();
+    if (!c.pullShortcode) throw new Error("M-Pesa shortcode is not set");
+    const seen = new Map<string, PulledTransaction>();
+    let offset = 0;
+    for (let page = 0; page < PULL_PAGE_LIMIT; page++) {
+      const { status, body } = await this.post("/pulltransactions/v1/query", {
+        ShortCode: c.pullShortcode,
+        StartDate: this.pullDate(start),
+        EndDate: this.pullDate(end),
+        OffSetValue: String(offset),
+      });
+      if (body.errorCode || body.errorMessage || status >= 400) throw new Error(String(body.errorMessage ?? `Pull query failed (${status})`));
+      const rows = flattenRows(body.Response);
+      if (!rows.length) break;
+      let fresh = 0;
+      for (const row of rows) {
+        const parsed = parsePulledRow(row);
+        if (parsed && !seen.has(parsed.transactionId)) {
+          seen.set(parsed.transactionId, parsed);
+          fresh++;
+        }
+      }
+      // Guard against an API that ignores the offset and keeps returning the same page.
+      if (!fresh) break;
+      offset += rows.length;
+    }
+    return [...seen.values()];
+  }
+
   parseCallback(body: unknown): ParsedCallback | null {
     const cb = (body as { Body?: { stkCallback?: Record<string, unknown> } })?.Body?.stkCallback;
     if (!cb || typeof cb.CheckoutRequestID !== "string" || cb.ResultCode === undefined) return null;
@@ -215,4 +299,34 @@ export class MpesaPaymentProvider implements PaymentProvider {
       outcome,
     };
   }
+}
+
+function flattenRows(value: unknown): Record<string, unknown>[] {
+  if (!Array.isArray(value)) return [];
+  return value.flatMap((v) => (Array.isArray(v) ? flattenRows(v) : v && typeof v === "object" ? [v as Record<string, unknown>] : []));
+}
+
+function text(value: unknown) {
+  return value === undefined || value === null || value === "" ? null : String(value).trim();
+}
+
+function parsePulledRow(row: Record<string, unknown>): PulledTransaction | null {
+  const transactionId = text(row.transactionId ?? row.TransactionId ?? row.TransID);
+  const amount = Number(row.amount ?? row.Amount);
+  const rawDate = text(row.trxDate ?? row.TransactionDate ?? row.TransTime);
+  if (!transactionId || !Number.isFinite(amount) || !rawDate) return null;
+  // Timestamps without an offset are East Africa Time (UTC+3, no daylight saving).
+  const transactionDate = new Date(/[zZ]|[+-]\d{2}:?\d{2}$/.test(rawDate) ? rawDate : `${rawDate.replace(" ", "T")}+03:00`);
+  if (Number.isNaN(transactionDate.getTime())) return null;
+  return {
+    transactionId: transactionId.toUpperCase(),
+    transactionDate,
+    msisdn: text(row.msisdn ?? row.MSISDN),
+    sender: text(row.sender),
+    transactionType: text(row.transactiontype ?? row.transactionType),
+    billReference: text(row.billreference ?? row.billReference ?? row.BillRefNumber),
+    amount,
+    organizationName: text(row.organizationname ?? row.organizationName),
+    raw: row,
+  };
 }

@@ -1,5 +1,5 @@
 /**
- * Seeds Chess254's initial configuration and content into PostgreSQL.
+ * Seeds Minichess Kenya's initial configuration and content into PostgreSQL.
  * Everything here is data the club can edit or delete from the admin portal;
  * the application contains no logic keyed to these names, prices or slugs.
  * Re-running is safe: records are upserted by their natural keys and existing
@@ -38,8 +38,8 @@ async function main() {
   }
 
   // ── Settings ────────────────────────────────────────────────────────────
-  await setting("general", { siteName: "Chess254", tagline: "Play. Improve. Belong.", siteUrl: process.env.NEXT_PUBLIC_APP_URL ?? "", timezone: "Africa/Nairobi", currency: "KES" });
-  await setting("brand", { logoText: "Chess", logoAccent: "254", primaryColor: "#019C98", heroImage: "/gallery/githinji.jpg", ogImage: "/gallery/launch-crowd.jpg" });
+  await setting("general", { siteName: "Minichess Kenya", tagline: "Play. Improve. Belong.", siteUrl: process.env.NEXT_PUBLIC_APP_URL ?? "", timezone: "Africa/Nairobi", currency: "KES" });
+  await setting("brand", { logoText: "Minichess", logoAccent: " Kenya", primaryColor: "#019C98", heroImage: "/gallery/githinji.jpg", ogImage: "/gallery/launch-crowd.jpg" });
   await setting("contact", { email: "", phone: "", whatsapp: "", contactIntro: "Questions about memberships, coaching or events? Send the team a message and we'll get back to you." });
   await setting("booking", {
     slotIntervalMinutes: 30,
@@ -51,14 +51,14 @@ async function main() {
     cancellationPolicy: "Confirmed sessions can be cancelled up to 12 hours before they start. Later cancellations and no-shows count as a used session.",
   });
   await setting("membership", { renewalReminderDays: 5, allowEarlyRenewal: true, joinIntro: "Choose your membership and register your interest. We'll help place you with the right playing group and coaching level." });
-  await setting("payments", { taxRatePercent: 0, taxInclusive: true, taxLabel: "VAT", orderExpiryMinutes: 30, invoicePrefix: "C254", invoiceFooter: "Thank you for playing at Chess254." });
+  await setting("payments", { taxRatePercent: 0, taxInclusive: true, taxLabel: "VAT", orderExpiryMinutes: 30, invoicePrefix: "C254", invoiceFooter: "Thank you for playing at Minichess Kenya." });
   await setting("notifications", { emailEnabled: true, smsEnabled: false, bookingReminderHours: 24, adminAlertEmail: "" });
-  await setting("email", { fromName: "Chess254", fromEmail: process.env.EMAIL_FROM ?? "", replyTo: "" });
+  await setting("email", { fromName: "Minichess Kenya", fromEmail: process.env.EMAIL_FROM ?? "", replyTo: "" });
   await setting("seo", {
-    defaultTitle: "Chess254 Clubhouse — Westlands, Nairobi",
-    titleTemplate: "%s · Chess254",
+    defaultTitle: "Minichess Kenya Clubhouse — Westlands, Nairobi",
+    titleTemplate: "%s · Minichess Kenya",
     defaultDescription: "A home for chess players in Nairobi. Daily play, resident coaches, events and a community that loves the game.",
-    keywords: "chess Nairobi, chess club Kenya, chess coaching Westlands, Chess254",
+    keywords: "chess Nairobi, chess club Kenya, chess coaching Westlands, Minichess Kenya",
     twitterHandle: "",
   });
   await setting("events", { cancellationHours: 24, showPastEvents: true });
@@ -68,7 +68,7 @@ async function main() {
   const location = await prisma.location.upsert({
     where: { slug: "westlands" },
     create: {
-      name: "Chess254 Westlands",
+      name: "Minichess Kenya Westlands",
       slug: "westlands",
       address: "The Mall, Westlands",
       city: "Nairobi",
@@ -139,7 +139,7 @@ async function main() {
         "Access every day from 4:00 PM until late",
         "A playing partner available every day",
         "Regular games and sparring",
-        "Chess254 club activities and community",
+        "Minichess Kenya club activities and community",
         "Discounted entry to selected tournaments and events",
       ],
     },
@@ -188,7 +188,7 @@ async function main() {
   const blocks: Prisma.ContentBlockCreateInput[] = [
     {
       key: "home.hero", page: "home", position: 1,
-      eyebrow: "Chess254 Clubhouse · Westlands",
+      eyebrow: "Minichess Kenya Clubhouse · Westlands",
       title: "Play more.", highlight: "Improve faster.",
       body: "A home for chess players in Nairobi. Come in, find a game, meet other players, work with resident coaches and build your chess — from your very first moves all the way to 1800 and beyond.",
       imageUrl: "/gallery/githinji.jpg",
@@ -208,7 +208,7 @@ async function main() {
     { key: "home.ticker", page: "home", position: 3, items: [{ title: "Play" }, { title: "Learn" }, { title: "Connect" }, { title: "Grow" }] },
     {
       key: "home.memberships", page: "home", position: 4,
-      eyebrow: "Choose how you want to use Chess254", title: "Two simple memberships.",
+      eyebrow: "Choose how you want to use Minichess Kenya", title: "Two simple memberships.",
       body: "Choose daily play, or combine daily play with a structured improvement programme.",
     },
     {
@@ -222,14 +222,14 @@ async function main() {
     },
     {
       key: "home.cta", page: "home", position: 9,
-      eyebrow: "Join Chess254 Westlands", title: "Ready to play?",
+      eyebrow: "Join Minichess Kenya Westlands", title: "Ready to play?",
       body: "Choose your membership and register your interest. We'll help place you with the right playing group and coaching level.",
       ctaLabel: "Register for Westlands", ctaHref: "/register",
     },
     {
       key: "about.intro", page: "about", position: 1,
-      eyebrow: "About Chess254", title: "A chess home", highlight: "in Nairobi.",
-      body: "If you've been looking for a chess home to learn, play, improve, and meet people who actually love the game — welcome to Chess254. Whether you're completely new to chess, getting back into the game, or already obsessed with your next move, there's a spot for you at the Chess254 Clubhouse.",
+      eyebrow: "About Minichess Kenya", title: "A chess home", highlight: "in Nairobi.",
+      body: "If you've been looking for a chess home to learn, play, improve, and meet people who actually love the game — welcome to Minichess Kenya. Whether you're completely new to chess, getting back into the game, or already obsessed with your next move, there's a spot for you at the Minichess Kenya Clubhouse.",
       imageUrl: "/gallery/this-is-the-place.jpg",
     },
     {
@@ -243,7 +243,7 @@ async function main() {
   for (const block of blocks) await prisma.contentBlock.upsert({ where: { key: block.key }, create: block, update: {} });
 
   if ((await prisma.announcement.count()) === 0) {
-    await prisma.announcement.create({ data: { title: "Chess254 Westlands opens Monday, 14 September 2026.", published: true } });
+    await prisma.announcement.create({ data: { title: "Minichess Kenya Westlands opens Monday, 14 September 2026.", published: true } });
   }
   if ((await prisma.socialLink.count()) === 0) {
     await prisma.socialLink.create({ data: { platform: "instagram", label: "@_chess254", url: "https://www.instagram.com/_chess254/" } });
@@ -256,7 +256,7 @@ async function main() {
       ["Can I come in without a membership?", "Yes. Buy a clubhouse day pass for a single visit after 4 PM, or book a one-off lesson and play visit.", "Visiting"],
       ["I'm a complete beginner. Is that okay?", "Absolutely. Player Development members receive guided instruction whenever they visit until they can play independently, and there's a trainer on the ground at hangouts.", "Coaching"],
       ["Do you have sessions for kids?", "Yes — kids sessions run on Saturdays from 9 AM to 4 PM.", "Coaching"],
-      ["Where is the clubhouse?", "Chess254 Clubhouse is at The Mall, Westlands, Nairobi.", "Visiting"],
+      ["Where is the clubhouse?", "Minichess Kenya Clubhouse is at The Mall, Westlands, Nairobi.", "Visiting"],
     ];
     await prisma.fAQ.createMany({ data: faqs.map(([question, answer, category], position) => ({ question, answer, category, position })) });
   }
@@ -273,7 +273,7 @@ async function main() {
     ["this-is-the-place.jpg", "This is the place", "Clubhouse", 334, 520, true],
     ["hangouts-smile.jpg", "Chess hangouts", "Community", 740, 765, true],
     ["launch-crowd.jpg", "Launch night", "Events", 978, 983, true],
-    ["chess254-cake.jpg", "The Chess254 cake", "Events", 737, 986, false],
+    ["chess254-cake.jpg", "The Minichess Kenya cake", "Events", 737, 986, false],
     ["end-game-package.jpg", "End game package", "Clubhouse", 300, 536, false],
     ["demo-board.jpg", "The demo board", "Coaching", 546, 590, false],
     ["player-focus.jpg", "Game face", "Players", 280, 342, false],
@@ -293,7 +293,7 @@ async function main() {
     });
   }
 
-  // ── Events (from published Chess254 announcements) ───────────────────────
+  // ── Events (from published Minichess Kenya announcements) ───────────────────────
   await prisma.event.upsert({
     where: { slug: "grand-opening-team-kenya-send-off" },
     create: {
@@ -301,7 +301,7 @@ async function main() {
       slug: "grand-opening-team-kenya-send-off",
       type: "COMMUNITY",
       excerpt: "A new home for chess in Nairobi.",
-      description: "Chess254 opened its doors with a celebration of the game and a send-off for Team Kenya. Whether you came to play, learn, compete or simply see what Chess254 is about — this was the day we connected.",
+      description: "Minichess Kenya opened its doors with a celebration of the game and a send-off for Team Kenya. Whether you came to play, learn, compete or simply see what Minichess Kenya is about — this was the day we connected.",
       coverImage: "/gallery/grand-opening-poster.jpg",
       startsAt: new Date("2026-09-13T12:00:00+03:00"),
       endsAt: new Date("2026-09-13T22:00:00+03:00"),
@@ -396,7 +396,7 @@ async function main() {
       transactionType: process.env.MPESA_TRANSACTION_TYPE || "CustomerPayBillOnline",
       callbackUrl: process.env.MPESA_CALLBACK_URL || null,
       accountReferenceFormat: "{order}",
-      transactionDescription: "Chess254",
+      transactionDescription: "Minichess",
       currency: "KES",
     },
     update: {},

@@ -240,7 +240,7 @@ describe("staff journeys", () => {
     await page.getByText(`KSh ${newPrice.toLocaleString("en-KE")}`).first().waitFor();
     const log = await prisma.auditLog.findFirst({ where: { actorId: admin.id, action: "plans.update", entityId: plan.id } });
     assert.ok(log, "change is audited");
-    for (const p of ["/admin/users", "/admin/bookings", "/admin/payments", "/admin/settings", "/admin/payment-settings", "/admin/roles", "/admin/audit", "/admin/reports", "/admin/moderation", "/admin/manage/gallery", "/admin/manage/events/new"]) {
+    for (const p of ["/admin/users", "/admin/bookings", "/admin/payments", "/admin/mpesa-transactions", "/admin/settings", "/admin/settings?group=payments", "/admin/payment-settings", "/admin/roles", "/admin/audit", "/admin/reports", "/admin/moderation", "/admin/manage/gallery", "/admin/manage/events/new"]) {
       const res = await page.goto(`${APP_URL}${p}`);
       assert.equal(res?.status(), 200, p);
     }
@@ -249,6 +249,33 @@ describe("staff journeys", () => {
     assert.ok(!html.includes("test-consumer-secret") && !html.includes("test-passkey-0123456789"), "secrets never reach the browser");
     await shot(page, "admin-payment-settings");
     await page.close();
+  });
+
+  test("an admin configures the M-Pesa account from Settings → Payments", async () => {
+    const admin = await makeUser("e2e-mpesa-admin", "SUPER_ADMIN");
+    const before = await prisma.paymentConfiguration.findFirstOrThrow({ where: { provider: { key: "mpesa" } } });
+    const page = await browser.newPage({ viewport: { width: 1440, height: 900 } });
+    try {
+      await login(page, admin.email);
+      await page.goto(`${APP_URL}/admin/settings?group=payments`, { waitUntil: "networkidle" });
+      await page.getByRole("heading", { name: "M-Pesa account" }).waitFor();
+      const html = await page.content();
+      assert.ok(!html.includes("test-consumer-secret") && !html.includes("test-passkey-0123456789"), "secrets never reach the browser");
+      assert.equal(await page.locator("input[name=tillNumber]").count(), 0, "till field hidden for a paybill");
+      await page.selectOption("select[name=accountType]", "TILL");
+      await page.fill("input[name=tillNumber]", "5432101");
+      await page.fill("input[name=pullNominatedNumber]", "0722 000 000");
+      await shot(page, "admin-settings-mpesa");
+      await page.getByRole("button", { name: "Save M-Pesa account" }).click();
+      await page.getByText(/M-Pesa account saved|Saved, but/).first().waitFor();
+      const after = await prisma.paymentConfiguration.findUniqueOrThrow({ where: { id: before.id } });
+      assert.equal(after.transactionType, "CustomerBuyGoodsOnline");
+      assert.equal(after.tillNumber, "5432101");
+      assert.equal(after.pullNominatedNumber, "254722000000");
+    } finally {
+      await prisma.paymentConfiguration.update({ where: { id: before.id }, data: { transactionType: before.transactionType, tillNumber: before.tillNumber, paybillNumber: before.paybillNumber, shortcode: before.shortcode, environment: before.environment, pullNominatedNumber: before.pullNominatedNumber } });
+      await page.close();
+    }
   });
 
   test("a member cannot open the admin portal; a coach manages availability", async () => {

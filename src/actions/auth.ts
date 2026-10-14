@@ -31,7 +31,7 @@ async function sendVerification(userId: string, to: string) {
   const token = await issueToken(userId, "EMAIL_VERIFY", 60 * 24);
   const url = `${await siteUrl()}/verify-email?token=${encodeURIComponent(token)}`;
   const { siteName } = await getSettings("general");
-  await sendEmail(to, `Confirm your ${siteName} account`, "Confirm your email address to activate your account. The link is valid for 24 hours.", url);
+  await sendEmail(to, `Confirm your ${siteName} account`, "Confirm your email address to activate your account. The link is valid for 24 hours.", url, "Confirm email");
 }
 
 export async function registerAction(formData: FormData): Promise<ActionResult> {
@@ -124,7 +124,7 @@ export async function forgotPasswordAction(formData: FormData): Promise<ActionRe
     const user = await prisma.user.findUnique({ where: { email: data.email } });
     if (user && !user.deletedAt && !user.suspendedAt) {
       const token = await issueToken(user.id, "PASSWORD_RESET", 60);
-      await sendEmail(user.email, "Reset your password", "Use this link to choose a new password. It expires in 1 hour. If you didn't ask for this, you can ignore this email.", `${await siteUrl()}/reset-password?token=${encodeURIComponent(token)}`);
+      await sendEmail(user.email, "Reset your password", "Use this link to choose a new password. It expires in 1 hour. If you didn't ask for this, you can ignore this email.", `${await siteUrl()}/reset-password?token=${encodeURIComponent(token)}`, "Reset password");
     }
     return { ok: true, message: "If an account exists for that email, a reset link is on its way." };
   });

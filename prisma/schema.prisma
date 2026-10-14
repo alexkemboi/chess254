@@ -1118,6 +1118,12 @@ model PaymentConfiguration {
   timeoutMinutes         Int             @default(5)
   verifyWithQuery        Boolean         @default(true)
   allowedCallbackIps     String[]
+  /// Daraja Pull Transactions API: periodically fetches received payments for reconciliation.
+  pullEnabled            Boolean         @default(false)
+  pullShortcode          String?
+  pullNominatedNumber    String?
+  pullRegisteredAt       DateTime?
+  pullLastSyncedAt       DateTime?
   updatedAt              DateTime        @updatedAt
   provider               PaymentProvider @relation(fields: [providerId], references: [id], onDelete: Cascade)
 }
@@ -1151,6 +1157,7 @@ model Payment {
   membershipPayment    MembershipPayment?
   membershipRenewal    MembershipRenewal?
   invoice              Invoice?
+  pulledTransactions   MpesaTransaction[]
 
   @@index([userId, createdAt])
   @@index([orderId])
@@ -1160,7 +1167,7 @@ model Payment {
 model PaymentTransaction {
   id        String        @id @default(cuid())
   paymentId String
-  kind      String // INITIATE | CALLBACK | QUERY | MANUAL | EXPIRE
+  kind      String // INITIATE | CALLBACK | QUERY | PULL | MANUAL | EXPIRE
   status    PaymentStatus
   reference String?
   message   String?
@@ -1186,6 +1193,32 @@ model PaymentCallback {
   payment     Payment?  @relation(fields: [paymentId], references: [id])
 
   @@index([paymentId, receivedAt])
+}
+
+/// A payment received on the shortcode, as reported by the Daraja Pull Transactions API.
+model MpesaTransaction {
+  id               String    @id @default(cuid())
+  transactionId    String    @unique
+  shortcode        String
+  transactionDate  DateTime
+  msisdn           String?
+  sender           String?
+  transactionType  String?
+  billReference    String?
+  amount           Decimal   @db.Decimal(12, 2)
+  organizationName String?
+  raw              Json
+  /// UNMATCHED | MATCHED (already settled payment) | SETTLED (settled by this record) | IGNORED
+  matchStatus      String    @default("UNMATCHED")
+  note             String?
+  paymentId        String?
+  pulledAt         DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+  payment          Payment?  @relation(fields: [paymentId], references: [id])
+
+  @@index([matchStatus, transactionDate])
+  @@index([billReference])
+  @@index([paymentId])
 }
 
 model Invoice {

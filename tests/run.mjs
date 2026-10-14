@@ -21,6 +21,10 @@ const env = {
   MPESA_API_BASE_URL: `http://127.0.0.1:${MOCK_PORT}`,
   MPESA_CALLBACK_URL: `http://127.0.0.1:${APP_PORT}`,
   TEST_APP_URL: `http://localhost:${APP_PORT}`,
+  // Test users have undeliverable addresses; keep real SMTP out of test runs.
+  SMTP_HOST: "",
+  SMTP_USER: "",
+  SMTP_PASSWORD: "",
 };
 
 const mock = await startMockDaraja(MOCK_PORT);

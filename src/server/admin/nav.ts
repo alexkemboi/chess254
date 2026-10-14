@@ -48,6 +48,7 @@ const GROUPS: NavGroup[] = [
   ] },
   { label: "Finance", items: [
     { href: "/admin/payments", label: "Payments", permission: "payments.view", icon: "Smartphone" },
+    { href: "/admin/mpesa-transactions", label: "M-Pesa transactions", permission: "payments.view", icon: "BadgeDollarSign" },
     { href: "/admin/invoices", label: "Invoices", permission: "payments.view", icon: "Receipt" },
     { href: "/admin/reports", label: "Reports", permission: "reports.view", icon: "BarChart3" },
   ] },

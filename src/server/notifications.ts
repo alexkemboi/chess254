@@ -60,9 +60,13 @@ class SmtpEmailProvider implements ChannelProvider {
       host: c["smtp.host"]!,
       port,
       secure: port === 465,
-      auth: { user: c["smtp.user"]!, pass: c["smtp.password"]! },
+      // Gmail displays app passwords in groups of four; the spaces are not part of it.
+      auth: { user: c["smtp.user"]!.trim(), pass: c["smtp.password"]!.replace(/\s+/g, "") },
+      connectionTimeout: 15_000,
+      greetingTimeout: 15_000,
+      socketTimeout: 20_000,
     });
-    const fromEmail = settings.email.fromEmail || c["smtp.user"]!;
+    const fromEmail = settings.email.fromEmail || c["smtp.user"]!.trim();
     try {
       await transport.sendMail({
         from: settings.email.fromName ? `"${settings.email.fromName}" <${fromEmail}>` : fromEmail,
@@ -85,7 +89,7 @@ function escapeHtml(value: string) {
   return value.replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]!);
 }
 
-async function renderEmail(title: string, body: string, link?: string | null) {
+async function renderEmail(title: string, body: string, link?: string | null, cta = "Open") {
   const settings = await getAllSettings();
   const base = await siteUrl();
   const url = link ? (link.startsWith("http") ? link : `${base}${link}`) : null;
@@ -97,7 +101,7 @@ async function renderEmail(title: string, body: string, link?: string | null) {
 <p style="margin:0 0 18px;font-weight:800;letter-spacing:.5px">${escapeHtml(name)}</p>
 <h1 style="font-size:22px;margin:0 0 12px">${escapeHtml(title)}</h1>
 <p style="color:#b4b8bd;line-height:1.6;white-space:pre-line">${escapeHtml(body)}</p>
-${url ? `<p style="margin-top:24px"><a href="${escapeHtml(url)}" style="background:${brand};color:#fff;padding:12px 18px;border-radius:999px;text-decoration:none;font-weight:700">Open</a></p>` : ""}
+${url ? `<p style="margin-top:24px"><a href="${escapeHtml(url)}" style="background:${brand};color:#fff;padding:12px 18px;border-radius:999px;text-decoration:none;font-weight:700">${escapeHtml(cta)}</a></p>` : ""}
 </div></div>`;
   return { text, html };
 }
@@ -121,10 +125,10 @@ export async function deliver(channel: NotificationChannel, message: OutboundMes
   return result.ok;
 }
 
-export async function sendEmail(to: string, title: string, body: string, link?: string | null) {
+export async function sendEmail(to: string, title: string, body: string, link?: string | null, cta?: string) {
   const settings = await getAllSettings();
   if (!settings.notifications.emailEnabled) return false;
-  const { text, html } = await renderEmail(title, body, link);
+  const { text, html } = await renderEmail(title, body, link, cta);
   return deliver("EMAIL", { to, subject: title, text, html });
 }
 

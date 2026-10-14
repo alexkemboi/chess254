@@ -114,7 +114,7 @@ const EVENTS: {
 const POSTS: { key: string; author: string; kind: PostKind; title: string; body: string; pinned?: boolean; daysAgo: number; comments: [string, string][]; likes: string[] }[] = [
   {
     key: "welcome", author: "coach:brian", kind: "DISCUSSION", pinned: true, daysAgo: 12,
-    title: "Welcome to the Chess254 community 👋",
+    title: "Welcome to the Minichess Kenya community 👋",
     body: "This is the place to share your games, ask questions and find sparring partners. Introduce yourself below: what's your rating, and what are you working on this month?",
     comments: [["njeri", "Hi all! About 1200 and working on not hanging pieces in time trouble 😅"], ["sam", "Returning player here, aiming for my first rated tournament this year."]],
     likes: ["njeri", "david", "sam"],

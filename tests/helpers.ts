@@ -7,6 +7,8 @@ export const TEST_PREFIX = "TEST ";
 export const APP_URL = process.env.TEST_APP_URL ?? "http://127.0.0.1:3100";
 export const DARAJA_URL = process.env.MPESA_API_BASE_URL ?? "http://127.0.0.1:4010";
 export const TEST_PASSWORD = "Test-password-123";
+/** Receipt prefix for transactions the tests feed to the Pull Transactions mock. */
+export const PULL_TEST_PREFIX = "TPULL";
 
 let counter = 0;
 export async function makeUser(label: string, role: "MEMBER" | "COACH" | "ADMIN" | "SUPER_ADMIN" | "MODERATOR" = "MEMBER") {
@@ -32,7 +34,7 @@ export async function completePayment(body: { checkoutRequestId?: string; result
 /** Removes every record created by the tests. */
 export async function cleanup(since?: Date) {
   // Tests sign in many times from one IP; reset throttles so runs are repeatable.
-  await prisma.rateLimit.deleteMany({ where: { OR: [{ key: { startsWith: "login:" } }, { key: { startsWith: "community:" } }, { key: { startsWith: "pay:" } }, { key: { startsWith: "book:" } }, { key: { startsWith: "event:" } }] } });
+  await prisma.rateLimit.deleteMany({ where: { OR: [{ key: { startsWith: "login:" } }, { key: { startsWith: "community:" } }, { key: { startsWith: "pay:" } }, { key: { startsWith: "book:" } }, { key: { startsWith: "event:" } }, { key: { startsWith: "paycheck:" } }, { key: { startsWith: "mpesa-pull:" } }] } });
   const users = await prisma.user.findMany({ where: { email: { endsWith: TEST_DOMAIN } }, select: { id: true } });
   const ids = users.map((u) => u.id);
   const testSessionTypes = await prisma.sessionType.findMany({ where: { name: { startsWith: TEST_PREFIX } }, select: { id: true } });
@@ -43,6 +45,7 @@ export async function cleanup(since?: Date) {
   await prisma.membershipPayment.deleteMany({ where: { membership: { userId: { in: ids } } } });
   await prisma.invoice.deleteMany({ where: { order: { userId: { in: ids } } } });
   await prisma.paymentCallback.deleteMany({ where: { payment: { userId: { in: ids } } } });
+  await prisma.mpesaTransaction.deleteMany({ where: { OR: [{ payment: { userId: { in: ids } } }, { transactionId: { startsWith: PULL_TEST_PREFIX } }] } });
   await prisma.payment.deleteMany({ where: { userId: { in: ids } } });
   await prisma.order.deleteMany({ where: { userId: { in: ids } } });
   await prisma.membership.deleteMany({ where: { userId: { in: ids } } });
@@ -61,4 +64,9 @@ export async function cleanup(since?: Date) {
   await prisma.user.deleteMany({ where: { id: { in: ids } } });
   // Unmatched callbacks produced by this run only (forged / unknown-payment tests).
   if (since) await prisma.paymentCallback.deleteMany({ where: { paymentId: null, providerKey: "mpesa", receivedAt: { gte: since } } });
+}
+
+export async function addPulledTransaction(body: { transactionId: string; billreference: string; amount: number }) {
+  const res = await fetch(`${DARAJA_URL}/__control/pull-add`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
+  if (!res.ok) throw new Error(`mock control failed: ${res.status}`);
 }

@@ -1,7 +1,7 @@
 /**
  * Local stand-in for Safaricom Daraja used ONLY by the test suite (wired in via
  * MPESA_API_BASE_URL). It implements OAuth, STK Push and STK Query with the same
- * request/response shapes as Daraja, and exposes /__control endpoints so tests
+ * request/response shapes as Daraja (plus Pull Transactions), and exposes /__control endpoints so tests
  * can complete, cancel or fail a payment and deliver (duplicate) callbacks.
  */
 import http from "node:http";
@@ -11,6 +11,8 @@ export const TEST_CREDENTIALS = { key: "test-consumer-key", secret: "test-consum
 
 export function startMockDaraja(port = 4010) {
   const requests = new Map(); // CheckoutRequestID → record
+  const pulled = []; // transactions served by the Pull Transactions API
+  let pullRegistered = null;
   const token = `mock-${randomUUID()}`;
 
   const json = (res, status, body) => {
@@ -84,7 +86,32 @@ export function startMockDaraja(port = 4010) {
       return json(res, 200, { ResponseCode: "0", ResponseDescription: "The service request has been accepted successsfully", MerchantRequestID: record.merchantRequestId, CheckoutRequestID: record.checkoutRequestId, ResultCode: code, ResultDesc: code === "0" ? "The service request is processed successfully." : "Request cancelled by user" });
     }
 
+    if (req.method === "POST" && url.pathname === "/pulltransactions/v1/register") {
+      if (!authorised(req)) return json(res, 401, { errorCode: "404.001.03", errorMessage: "Invalid Access Token" });
+      const b = await readBody(req);
+      if (b.ShortCode !== TEST_CREDENTIALS.shortcode || b.RequestType !== "Pull" || !b.NominatedNumber || !b.CallBackURL) return json(res, 400, { errorCode: "400.002.02", errorMessage: "Bad Request" });
+      const already = Boolean(pullRegistered);
+      pullRegistered = b;
+      return json(res, 200, { ResponseRefID: randomUUID(), ResponseStatus: already ? "1001" : "1000", ShortCode: b.ShortCode, ResponseDescription: already ? "ShortCode already Registered" : "Shortcode Registered Successfully" });
+    }
+
+    if (req.method === "POST" && url.pathname === "/pulltransactions/v1/query") {
+      if (!authorised(req)) return json(res, 401, { errorCode: "404.001.03", errorMessage: "Invalid Access Token" });
+      const b = await readBody(req);
+      const dateOk = (v) => /^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}$/.test(v ?? "");
+      if (b.ShortCode !== TEST_CREDENTIALS.shortcode || !dateOk(b.StartDate) || !dateOk(b.EndDate)) return json(res, 400, { errorCode: "400.002.02", errorMessage: "Bad Request - Invalid dates" });
+      const offset = Number(b.OffSetValue ?? 0);
+      const page = pulled.slice(offset, offset + 2); // tiny pages exercise pagination
+      return json(res, 200, { ResponseRefID: randomUUID(), ResponseCode: "1000", ResponseMessage: "Success", Response: [page] });
+    }
+
     // ── Test control API ──────────────────────────────────────────────────
+    if (req.method === "POST" && url.pathname === "/__control/pull-add") {
+      const b = await readBody(req);
+      const row = { transactionId: b.transactionId, trxDate: b.trxDate ?? new Date().toISOString().replace("Z", "+00:00"), msisdn: 254708374149, sender: "TEST SENDER", transactiontype: "c2b-pay-bill-debit", billreference: b.billreference, amount: String(b.amount), organizationname: "Test Org" };
+      pulled.push(row);
+      return json(res, 200, row);
+    }
     if (req.method === "POST" && url.pathname === "/__control/complete") {
       const b = await readBody(req);
       const record = b.checkoutRequestId ? requests.get(b.checkoutRequestId) : [...requests.values()].at(-1);

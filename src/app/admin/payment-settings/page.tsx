@@ -2,17 +2,18 @@ import { CheckCircle2, AlertTriangle, Lock } from "lucide-react";
 import { prisma } from "@/server/db";
 import { requirePermission } from "@/server/auth";
 import { can } from "@/server/rbac";
-import { siteUrl } from "@/server/settings";
+import { getSettings, siteUrl } from "@/server/settings";
+import { formatDateTime } from "@/lib/format";
 import { describeSecrets } from "@/server/secrets";
 import { encryptionAvailable } from "@/server/crypto";
 import { providerImplementation } from "@/server/payments/registry";
-import { mpesaCallbackPath } from "@/server/payments/mpesa";
+import { mpesaCallbackPath, mpesaPullCallbackPath } from "@/server/payments/mpesa";
 import { PageHeader } from "@/components/ui/misc";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { ActionButton } from "@/components/admin/admin-ui";
 import { PaymentConfigForm, SecretsForm } from "@/components/admin/payment-settings-forms";
-import { clearSecretAction, testPaymentConnectionAction } from "@/actions/admin";
+import { clearSecretAction, registerMpesaPullAction, testPaymentConnectionAction } from "@/actions/admin";
 
 export const metadata = { title: "Payment settings" };
 
@@ -20,18 +21,19 @@ const ENV_LOCKS: Record<string, string> = { environment: "MPESA_ENVIRONMENT", sh
 
 export default async function PaymentSettings() {
   const actor = await requirePermission("payments.configure", "/admin/payment-settings");
-  const [providers, canSecrets, mpesaSecrets, emailSecrets, base] = await Promise.all([
+  const [providers, canSecrets, mpesaSecrets, emailSecrets, base, { timezone }] = await Promise.all([
     prisma.paymentProvider.findMany({ include: { config: true }, orderBy: { name: "asc" } }),
     can(actor.role, "payments.secrets"),
     describeSecrets("mpesa"),
     describeSecrets("email"),
     siteUrl(),
+    getSettings("general"),
   ]);
   const readinessList = await Promise.all(providers.map((p) => providerImplementation(p.key)?.readiness() ?? Promise.resolve(null)));
   const locked = Object.fromEntries(Object.entries(ENV_LOCKS).filter(([, env]) => Boolean(process.env[env])).map(([k, env]) => [k, env]));
   return (
     <div className="grid gap-6">
-      <PageHeader title="Payment settings" description="M-Pesa (Daraja) STK Push configuration. Credentials are never shown again after saving and are never sent to the browser." />
+      <PageHeader title="Payment settings" description="M-Pesa (Daraja) STK Push and transaction pull configuration. Credentials are never shown again after saving and are never sent to the browser." />
       {providers.map((p, i) => {
         const readiness = readinessList[i];
         const callback = `${(process.env.MPESA_CALLBACK_URL || p.config?.callbackUrl || base).replace(/\/+$/, "")}${p.key === "mpesa" ? mpesaCallbackPath() : ""}`;
@@ -58,6 +60,16 @@ export default async function PaymentSettings() {
                 <code className="mt-1 block break-all font-mono text-xs">{callback}</code>
                 {!callback.startsWith("https://") && <p className="mt-2 text-xs text-warning">Safaricom can only reach a public HTTPS URL. For local testing, use a tunnel and set the callback base URL.</p>}
               </div>
+              {p.key === "mpesa" && (
+                <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl bg-surface-2 p-4 text-sm">
+                  <div>
+                    <div className="text-xs text-muted">Transaction pull</div>
+                    <div className="mt-1">{p.config?.pullRegisteredAt ? <Badge variant="success">Registered {formatDateTime(p.config.pullRegisteredAt, timezone)}</Badge> : <Badge variant="neutral">Not registered</Badge>}{p.config?.pullLastSyncedAt && <span className="ml-2 text-xs text-muted">Last pull {formatDateTime(p.config.pullLastSyncedAt, timezone)}</span>}</div>
+                    <code className="mt-2 block break-all font-mono text-xs text-muted">{`${(process.env.MPESA_CALLBACK_URL || p.config?.callbackUrl || base).replace(/\/+$/, "")}${mpesaPullCallbackPath()}`}</code>
+                  </div>
+                  {readiness?.ready && <ActionButton action={registerMpesaPullAction}>{p.config?.pullRegisteredAt ? "Register again" : "Register shortcode"}</ActionButton>}
+                </div>
+              )}
               <PaymentConfigForm providerId={p.id} locked={locked} values={{ enabled: p.enabled, isDefault: p.isDefault, ...(p.config ?? {}), allowedCallbackIps: p.config?.allowedCallbackIps.join(", ") ?? "" }} />
             </CardContent>
           </Card>

@@ -20,7 +20,7 @@ const OPEN: PaymentStatus[] = ["PENDING", "PROCESSING"];
 /** Real money arriving after we gave up on a payment must still be honoured. */
 const SETTLEABLE: PaymentStatus[] = ["PENDING", "PROCESSING", "EXPIRED"];
 
-type Source = "CALLBACK" | "QUERY" | "MANUAL";
+type Source = "CALLBACK" | "QUERY" | "MANUAL" | "PULL";
 
 function chargeAmount(total: Prisma.Decimal) {
   return Math.ceil(total.toNumber());

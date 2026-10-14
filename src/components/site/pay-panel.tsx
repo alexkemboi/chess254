@@ -2,10 +2,10 @@
 import * as React from "react";
 import Link from "next/link";
 import { toast } from "sonner";
-import { CheckCircle2, Loader2, Smartphone, XCircle } from "lucide-react";
+import { CheckCircle2, Loader2, RefreshCw, Smartphone, XCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { payOrderAction } from "@/actions/commerce";
+import { checkPaymentStatusAction, payOrderAction } from "@/actions/commerce";
 
 type Status = "idle" | "starting" | "PROCESSING" | "SUCCESS" | "FAILED" | "CANCELLED" | "EXPIRED" | "PENDING";
 
@@ -19,6 +19,36 @@ export function PayPanel({ orderId, amountLabel, defaultPhone, inFlightPaymentId
   const [reason, setReason] = React.useState<string | null>(null);
   const [receipt, setReceipt] = React.useState<string | null>(null);
   const [elapsed, setElapsed] = React.useState(0);
+  const [checking, setChecking] = React.useState(false);
+
+  async function checkNow() {
+    if (!paymentId) return;
+    setChecking(true);
+    const res = await checkPaymentStatusAction(paymentId);
+    setChecking(false);
+    if (!res.ok) {
+      toast.error(res.error);
+      return;
+    }
+    const data = res.data!;
+    if (data.status === "SUCCESS") {
+      setReceipt(data.receipt);
+      setStatus("SUCCESS");
+      return;
+    }
+    toast.message(res.message ?? "Not confirmed yet");
+    if (data.status === "FAILED" || data.status === "CANCELLED" || data.status === "EXPIRED") {
+      setReason(data.failureReason);
+      setStatus(data.status as Status);
+    }
+  }
+
+  const checkButton = paymentId ? (
+    <Button type="button" variant="secondary" size="sm" onClick={checkNow} disabled={checking}>
+      {checking ? <Loader2 className="animate-spin" /> : <RefreshCw />}
+      I’ve paid — check status
+    </Button>
+  ) : null;
 
   React.useEffect(() => {
     if (!paymentId || (status !== "PROCESSING" && status !== "PENDING")) return;
@@ -93,6 +123,7 @@ export function PayPanel({ orderId, amountLabel, defaultPhone, inFlightPaymentId
         <h2 className="mt-6 font-display text-2xl font-extrabold tracking-tight">Check your phone</h2>
         <p className="mx-auto mt-2 max-w-sm text-muted">Enter your M-Pesa PIN on the prompt to pay {amountLabel}. This page updates automatically once Safaricom confirms.</p>
         <div className="mt-6 inline-flex items-center gap-2 text-sm text-muted"><Loader2 className="size-4 animate-spin text-brand-ink" />Waiting for confirmation{elapsed ? ` · ${elapsed}s` : "…"}</div>
+        {elapsed >= 20 && <div className="mt-6">{checkButton}</div>}
       </div>
     );
   }
@@ -105,6 +136,7 @@ export function PayPanel({ orderId, amountLabel, defaultPhone, inFlightPaymentId
           <div>
             <div className="font-semibold">{status === "CANCELLED" ? "Payment cancelled" : status === "EXPIRED" ? "We didn't get a confirmation" : "Payment not completed"}</div>
             <div className="mt-0.5 text-muted">{reason ?? (status === "EXPIRED" ? "If money left your account, it will be reconciled automatically. Otherwise, try again." : "You can try again below.")}</div>
+            {checkButton && <div className="mt-3">{checkButton}</div>}
           </div>
         </div>
       )}

@@ -7,6 +7,8 @@ import { startMembershipCheckout } from "@/server/memberships";
 import { startServiceCheckout } from "@/server/services";
 import { expireOrder, startPayment } from "@/server/payments/service";
 import { releaseOrderHolds } from "@/server/orders";
+import { checkMemberPayment } from "@/server/payments/mpesa-pull";
+import { rateLimit } from "@/server/rate-limit";
 
 const id = z.string().min(1).max(40);
 
@@ -33,6 +35,21 @@ export async function payOrderAction(orderId: string, formData: FormData): Promi
     const payment = await startPayment(user.id, id.parse(orderId), phone);
     await prisma.user.updateMany({ where: { id: user.id, phone: null }, data: { phone } });
     return { ok: true, message: "Check your phone and enter your M-Pesa PIN.", data: { paymentId: payment.id } };
+  });
+}
+
+/** Member asks us to check with M-Pesa now (status query, then a transaction pull if needed). */
+export async function checkPaymentStatusAction(paymentId: string): Promise<ActionResult<{ status: string; receipt: string | null; failureReason: string | null }>> {
+  return runAction(async () => {
+    const user = await assertUser();
+    if (!(await rateLimit(`paycheck:${user.id}`, 10, 600))) throw new UserError("Please wait a minute before checking again.");
+    const payment = await checkMemberPayment(id.parse(paymentId), user.id);
+    if (!payment) throw new UserError("Payment not found.");
+    const message =
+      payment.status === "SUCCESS" ? "Payment confirmed by M-Pesa." :
+      payment.status === "PROCESSING" || payment.status === "PENDING" ? "M-Pesa hasn't confirmed this payment yet." :
+      "M-Pesa has no completed payment for this order yet.";
+    return { ok: true, message, data: { status: payment.status, receipt: payment.receiptNumber, failureReason: payment.failureReason } };
   });
 }
 

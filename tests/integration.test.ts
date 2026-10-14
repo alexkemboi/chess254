@@ -5,7 +5,8 @@
  */
 import { after, before, describe, test } from "node:test";
 import assert from "node:assert/strict";
-import { prisma, makeUser, cleanup, completePayment, APP_URL, TEST_PREFIX } from "./helpers";
+import { prisma, makeUser, cleanup, completePayment, addPulledTransaction, APP_URL, TEST_PREFIX, PULL_TEST_PREFIX } from "./helpers";
+import { syncPulledTransactions } from "@/server/payments/mpesa-pull";
 import { can } from "@/server/rbac";
 import { startMembershipCheckout } from "@/server/memberships";
 import { startPayment, reconcilePayment } from "@/server/payments/service";
@@ -161,6 +162,47 @@ describe("M-Pesa membership payments", () => {
     const plan = await prisma.membershipPlan.findUniqueOrThrow({ where: { slug: "clubhouse-sparring" } });
     const order = await startMembershipCheckout(owner.id, plan.id);
     await assert.rejects(() => startPayment(intruder.id, order.id, "0712345678"), /Order not found/);
+  });
+});
+
+describe("M-Pesa transaction pull", () => {
+  const receipt = () => `${PULL_TEST_PREFIX}${Math.random().toString(36).slice(2, 8).toUpperCase()}`;
+
+  test("a paybill payment found by the pull settles an order whose prompt was cancelled, once", async () => {
+    const user = await makeUser("pull");
+    const plan = await prisma.membershipPlan.findUniqueOrThrow({ where: { slug: "player-development" } });
+    const order = await startMembershipCheckout(user.id, plan.id);
+    const payment = await startPayment(user.id, order.id, "0708374149");
+    await completePayment({ checkoutRequestId: payment.checkoutRequestId!, result: "cancelled" });
+    assert.equal((await prisma.payment.findUniqueOrThrow({ where: { id: payment.id } })).status, "CANCELLED");
+
+    const code = receipt();
+    await addPulledTransaction({ transactionId: code, billreference: payment.accountReference, amount: Math.ceil(order.total.toNumber()) });
+    const first = await syncPulledTransactions({ from: new Date(Date.now() - 3600_000) });
+    assert.ok(first.settled >= 1);
+    const settled = await prisma.payment.findUniqueOrThrow({ where: { id: payment.id }, include: { order: true } });
+    assert.equal(settled.status, "SUCCESS");
+    assert.equal(settled.receiptNumber, code);
+    assert.equal(settled.order.status, "PAID");
+    assert.equal((await prisma.mpesaTransaction.findUniqueOrThrow({ where: { transactionId: code } })).matchStatus, "SETTLED");
+
+    await syncPulledTransactions({ from: new Date(Date.now() - 3600_000) });
+    assert.equal(await prisma.membership.count({ where: { userId: user.id, status: "ACTIVE" } }), 1, "a repeated pull never fulfils twice");
+    assert.equal(await prisma.mpesaTransaction.count({ where: { transactionId: code } }), 1);
+  });
+
+  test("pulled money with the wrong amount or an unknown reference stays unmatched", async () => {
+    const user = await makeUser("pull-mismatch");
+    const plan = await prisma.membershipPlan.findUniqueOrThrow({ where: { slug: "player-development" } });
+    const order = await startMembershipCheckout(user.id, plan.id);
+    const payment = await startPayment(user.id, order.id, "0708374149");
+    const wrongAmount = receipt();
+    const unknown = receipt();
+    await addPulledTransaction({ transactionId: wrongAmount, billreference: payment.accountReference, amount: 1 });
+    await addPulledTransaction({ transactionId: unknown, billreference: "NO-SUCH-REF", amount: Math.ceil(order.total.toNumber()) });
+    await syncPulledTransactions({ from: new Date(Date.now() - 3600_000) });
+    for (const id of [wrongAmount, unknown]) assert.equal((await prisma.mpesaTransaction.findUniqueOrThrow({ where: { transactionId: id } })).matchStatus, "UNMATCHED");
+    assert.notEqual((await prisma.payment.findUniqueOrThrow({ where: { id: payment.id } })).status, "SUCCESS");
   });
 });
 

@@ -4,12 +4,13 @@ import { getAllSettings, SETTINGS_GROUPS, type SettingsGroup } from "@/server/se
 import { SETTINGS_FORMS } from "@/server/admin/settings-fields";
 import { PageHeader } from "@/components/ui/misc";
 import { SettingsForm } from "@/components/admin/settings-form";
+import { MpesaAccountSection } from "@/components/admin/mpesa-account-section";
 import { cn } from "@/lib/utils";
 
 export const metadata = { title: "Settings" };
 
 export default async function SettingsPage({ searchParams }: { searchParams: Promise<{ group?: string }> }) {
-  await requirePermission("settings.manage", "/admin/settings");
+  const actor = await requirePermission("settings.manage", "/admin/settings");
   const { group: raw } = await searchParams;
   const group: SettingsGroup = SETTINGS_GROUPS.includes(raw as SettingsGroup) ? (raw as SettingsGroup) : "general";
   const settings = await getAllSettings();
@@ -23,13 +24,14 @@ export default async function SettingsPage({ searchParams }: { searchParams: Pro
             <Link key={g} href={`/admin/settings?group=${g}`} className={cn("whitespace-nowrap rounded-lg px-3 py-2 text-sm", g === group ? "bg-brand-soft text-brand-ink" : "text-muted hover:bg-foreground/5 hover:text-foreground")}>{SETTINGS_FORMS[g].title}</Link>
           ))}
           <Link href="/admin/manage/locations" className="whitespace-nowrap rounded-lg px-3 py-2 text-sm text-muted hover:bg-foreground/5">Locations & hours →</Link>
-          <Link href="/admin/payment-settings" className="whitespace-nowrap rounded-lg px-3 py-2 text-sm text-muted hover:bg-foreground/5">M-Pesa →</Link>
+          <Link href="/admin/payment-settings" className="whitespace-nowrap rounded-lg px-3 py-2 text-sm text-muted hover:bg-foreground/5">M-Pesa advanced →</Link>
         </nav>
         <div className="rounded-2xl border border-border bg-surface p-5 sm:p-7">
           <h2 className="font-display text-2xl font-bold">{form.title}</h2>
           <p className="mb-6 mt-1 text-sm text-muted">{form.description}</p>
           <SettingsForm key={group} group={group} fields={form.fields} values={settings[group] as Record<string, unknown>} />
         </div>
+        {group === "payments" && <div className="lg:col-start-2"><MpesaAccountSection role={actor.role} /></div>}
       </div>
     </div>
   );

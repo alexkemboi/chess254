@@ -86,7 +86,7 @@ export function Header({ logo, user }: { logo: React.ReactNode; user: NavUser })
                 <Link href="/login">Sign in</Link>
               </Button>
               <Button asChild size="sm" className="ml-1 h-10 shrink-0 px-5">
-                <Link href="/register"><span className="min-[380px]:hidden">Join</span><span className="max-[379px]:hidden">Join the club</span></Link>
+                <Link href="/register"><span className="min-[440px]:hidden">Join</span><span className="max-[439px]:hidden">Join the club</span></Link>
               </Button>
             </>
           )}

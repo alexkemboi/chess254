@@ -11,6 +11,7 @@ import { cancelBooking, rescheduleBooking } from "@/server/booking";
 import { cancelRegistration } from "@/server/events";
 import { reconcilePayment, settleManually } from "@/server/payments/service";
 import { providerImplementation } from "@/server/payments/registry";
+import { linkTransactionToOrder, registerPullShortcode, syncPulledTransactions } from "@/server/payments/mpesa-pull";
 import { emailNotifications, notify } from "@/server/notifications";
 import { addBillingPeriod } from "@/server/orders";
 import { activeMembershipWhere } from "@/server/memberships";
@@ -266,6 +267,9 @@ export async function savePaymentConfigAction(providerId: string, formData: Form
         timeoutMinutes: z.coerce.number().int().min(1).max(30),
         verifyWithQuery: z.preprocess((v) => v === "true", z.boolean()),
         allowedCallbackIps: z.string().optional().transform((v) => (v ?? "").split(/[\s,]+/).map((s) => s.trim()).filter(Boolean)),
+        pullEnabled: z.preprocess((v) => v === "true", z.boolean()),
+        pullShortcode: z.string().trim().regex(/^\d{5,8}$|^$/, "5–8 digits").optional().transform((v) => v || null),
+        pullNominatedNumber: z.preprocess((v) => (typeof v === "string" ? v.replace(/[\s-]/g, "") : v), z.string().regex(/^(?:0|254|\+254)?[17]\d{8}$|^$/, "Enter a Safaricom number").optional().transform((v) => (v ? `254${v.replace(/^(?:\+?254|0)/, "")}` : null))),
       }),
       formData,
     );
@@ -327,6 +331,130 @@ export async function testPaymentConnectionAction(providerId: string): Promise<A
     await audit({ actorId: actor.id, action: "payment_settings.test", entity: "PaymentProvider", entityId: provider!.id });
     if (/authentication failed|Invalid Access Token|reach/i.test(`${outcome.message} ${raw}`)) throw new UserError(`Connection failed: ${outcome.message ?? "authentication error"}`);
     return { ok: true, message: `Connected to M-Pesa ${readiness.environment}. Credentials were accepted.` };
+  });
+}
+
+// ─── M-Pesa account (Settings → Payments) ─────────────────────────────────
+
+/**
+ * One form for the M-Pesa account: account type, shortcode, credentials and the
+ * pull nominated number. Credentials are write-only (blank keeps the stored value),
+ * encrypted at rest and read on every request, so changes apply without a restart.
+ */
+export async function saveMpesaAccountAction(formData: FormData): Promise<ActionResult> {
+  return runAction(async () => {
+    const actor = await assertPermission("payments.configure");
+    const data = parseForm(
+      z.object({
+        enabled: z.preprocess((v) => v === "true", z.boolean()),
+        isDefault: z.preprocess((v) => v === "true", z.boolean()),
+        environment: z.enum(["sandbox", "production"]),
+        accountType: z.enum(["PAYBILL", "TILL"]),
+        shortcode: z.string().trim().regex(/^\d{5,7}$/, "Enter the 5–7 digit shortcode"),
+        tillNumber: z.string().trim().regex(/^\d{5,8}$|^$/, "5–8 digits").optional().transform((v) => v || null),
+        consumerKey: z.string().trim().max(500).optional(),
+        consumerSecret: z.string().trim().max(500).optional(),
+        passkey: z.string().trim().max(500).optional(),
+        pullNominatedNumber: z.preprocess((v) => (typeof v === "string" ? v.replace(/[\s-]/g, "") : v), z.string().regex(/^(?:0|254|\+254)?[17]\d{8}$|^$/, "Enter a Safaricom number").optional().transform((v) => (v ? `254${v.replace(/^(?:\+?254|0)/, "")}` : null))),
+      }),
+      formData,
+    );
+    if (data.accountType === "TILL" && !data.tillNumber) throw new UserError("Enter the till number customers pay to.", { tillNumber: "Required for a till" });
+
+    const secrets: Partial<Record<SecretKey, string>> = {};
+    if (data.consumerKey) secrets["mpesa.consumerKey"] = data.consumerKey;
+    if (data.consumerSecret) secrets["mpesa.consumerSecret"] = data.consumerSecret;
+    if (data.passkey) secrets["mpesa.passkey"] = data.passkey;
+    if (Object.keys(secrets).length && !(await can(actor.role, "payments.secrets"))) throw new UserError("Only super admins can change M-Pesa credentials.");
+
+    const provider = await prisma.paymentProvider.findUnique({ where: { key: "mpesa" }, include: { config: true } });
+    if (!provider) throw new UserError("The M-Pesa provider is missing from the database.");
+    const config = {
+      environment: data.environment,
+      shortcode: data.shortcode,
+      transactionType: data.accountType === "TILL" ? "CustomerBuyGoodsOnline" : "CustomerPayBillOnline",
+      tillNumber: data.accountType === "TILL" ? data.tillNumber : null,
+      paybillNumber: data.accountType === "PAYBILL" ? data.shortcode : null,
+      pullNominatedNumber: data.pullNominatedNumber,
+    };
+    const changed = await storeSecrets(secrets, actor.id);
+    await prisma.paymentConfiguration.upsert({ where: { providerId: provider.id }, create: { providerId: provider.id, ...config }, update: config });
+
+    let message = "M-Pesa account saved.";
+    let enabled = data.enabled;
+    if (enabled) {
+      const readiness = await providerImplementation("mpesa")!.readiness();
+      if (!readiness.ready) {
+        enabled = false;
+        message = `Saved, but payments stay off until these are set: ${readiness.missing.join(", ")}.`;
+      }
+    }
+    await prisma.$transaction(async (tx) => {
+      if (data.isDefault) await tx.paymentProvider.updateMany({ where: { id: { not: provider.id } }, data: { isDefault: false } });
+      await tx.paymentProvider.update({ where: { id: provider.id }, data: { enabled, isDefault: data.isDefault } });
+    });
+    await audit({
+      actorId: actor.id,
+      action: "payment_settings.account",
+      entity: "PaymentProvider",
+      entityId: provider.id,
+      previous: { enabled: provider.enabled, environment: provider.config?.environment, shortcode: provider.config?.shortcode, transactionType: provider.config?.transactionType },
+      next: { enabled, ...config, credentialsChanged: changed },
+    });
+    revalidatePath("/admin/settings");
+    revalidatePath("/admin/payment-settings");
+    return { ok: true, message: changed.length ? `${message} ${changed.length} credential${changed.length > 1 ? "s" : ""} updated.` : message };
+  });
+}
+
+// ─── M-Pesa transaction pull ──────────────────────────────────────────────
+
+export async function registerMpesaPullAction(): Promise<ActionResult> {
+  return runAction(async () => {
+    const actor = await assertPermission("payments.configure");
+    const result = await registerPullShortcode();
+    await audit({ actorId: actor.id, action: "payment_settings.pull_register", entity: "PaymentProvider", next: { ok: result.ok, message: result.message } });
+    if (!result.ok) throw new UserError(`M-Pesa did not register the shortcode: ${result.message}`);
+    revalidatePath("/admin/payment-settings");
+    return { ok: true, message: `Registered for transaction pull: ${result.message}` };
+  });
+}
+
+export async function pullMpesaTransactionsAction(formData: FormData): Promise<ActionResult> {
+  return runAction(async () => {
+    const actor = await assertPermission("payments.reconcile");
+    const { hours } = parseForm(z.object({ hours: z.coerce.number().int().min(1).max(48).default(48) }), formData);
+    const result = await syncPulledTransactions({ from: new Date(Date.now() - hours * 3600_000) }).catch((e: unknown) => {
+      throw new UserError(`Pull failed: ${e instanceof Error ? e.message : String(e)}`);
+    });
+    await audit({ actorId: actor.id, action: "payment.pull", entity: "MpesaTransaction", next: { hours, ...result } });
+    revalidatePath("/admin/mpesa-transactions");
+    return { ok: true, message: `Pulled ${result.pulled} transactions (${result.created} new). ${result.settled} payments settled, ${result.matched} linked.` };
+  });
+}
+
+export async function linkMpesaTransactionAction(rowId: string, formData: FormData): Promise<ActionResult> {
+  return runAction(async () => {
+    const actor = await assertPermission("payments.reconcile");
+    const { order } = parseForm(z.object({ order: z.string().trim().min(3).max(40) }), formData);
+    const result = await linkTransactionToOrder(id.parse(rowId), order, actor.id).catch((e: unknown) => {
+      throw new UserError(e instanceof Error ? e.message : String(e));
+    });
+    await audit({ actorId: actor.id, action: "payment.pull_link", entity: "MpesaTransaction", entityId: rowId, next: result });
+    revalidatePath("/admin/mpesa-transactions");
+    return { ok: true, message: `Order ${result.orderNumber} is now paid.` };
+  });
+}
+
+export async function ignoreMpesaTransactionAction(rowId: string, formData: FormData): Promise<ActionResult> {
+  return runAction(async () => {
+    const actor = await assertPermission("payments.reconcile");
+    const { note } = parseForm(z.object({ note: z.string().trim().min(2).max(300) }), formData);
+    const { count } = await prisma.mpesaTransaction.updateMany({ where: { id: id.parse(rowId), matchStatus: "UNMATCHED" }, data: { matchStatus: "IGNORED", note } });
+    if (!count) throw new UserError("Only unmatched transactions can be ignored.");
+    await audit({ actorId: actor.id, action: "payment.pull_ignore", entity: "MpesaTransaction", entityId: rowId, next: { note } });
+    revalidatePath("/admin/mpesa-transactions");
+    return { ok: true, message: "Marked as not for this site." };
   });
 }
 
