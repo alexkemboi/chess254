@@ -5,6 +5,7 @@ import { notify, emailNotifications } from "@/server/notifications";
 import { sweepPayments } from "@/server/payments/service";
 import { syncPulledTransactionsIfEnabled } from "@/server/payments/mpesa-pull";
 import { pruneRateLimits } from "@/server/rate-limit";
+import { pruneCarts } from "@/server/shop/cart";
 import { formatDate, formatDateTime } from "@/lib/format";
 
 /** Idempotent housekeeping, safe to run every few minutes from a scheduler. */
@@ -54,6 +55,7 @@ export async function runMaintenance() {
 
   await prisma.session.deleteMany({ where: { expiresAt: { lt: now } } });
   await pruneRateLimits();
+  const cartsPruned = await pruneCarts();
   await emailNotifications(ids);
-  return { payments, mpesaPull, membershipsExpired: lapsed.length, notifications: ids.length };
+  return { payments, mpesaPull, membershipsExpired: lapsed.length, notifications: ids.length, cartsPruned };
 }

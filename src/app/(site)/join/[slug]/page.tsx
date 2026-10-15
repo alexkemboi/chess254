@@ -2,9 +2,10 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { Check, ShieldCheck } from "lucide-react";
 import { prisma } from "@/server/db";
-import { requireUser } from "@/server/auth";
+import { currentUser } from "@/server/auth";
 import { activeMemberships } from "@/server/memberships";
-import { getAllSettings } from "@/server/settings";
+import { getAllSettings, getSettings } from "@/server/settings";
+import { GuestCheckoutForm } from "@/components/forms/guest-forms";
 import { Container } from "@/components/site/cards";
 import { CheckoutPlanButton } from "@/components/site/checkout-buttons";
 import { Badge } from "@/components/ui/badge";
@@ -14,11 +15,12 @@ export const metadata = { title: "Join", robots: { index: false } };
 
 export default async function JoinPage({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params;
-  const user = await requireUser(`/join/${slug}`);
+  const user = await currentUser();
   const plan = await prisma.membershipPlan.findFirst({ where: { slug, status: "ACTIVE" }, include: { features: { orderBy: { position: "asc" } } } });
   if (!plan) notFound();
   const settings = await getAllSettings();
-  const mine = await activeMemberships(user.id);
+  const { guidelines } = await getSettings("community");
+  const mine = user ? await activeMemberships(user.id) : [];
   const current = mine.find((m) => m.planId === plan.id);
   const period = BILLING_PERIOD_LABELS[plan.billingPeriod];
   const renewBlocked = current && !settings.membership.allowEarlyRenewal;
@@ -48,7 +50,13 @@ export default async function JoinPage({ params }: { params: Promise<{ slug: str
             </div>
           )}
           <div className="mt-auto pt-8">
-            {renewBlocked ? (
+            {!user ? (
+              <div className="rounded-2xl border border-border bg-background/60 p-5">
+                <div className="mb-4 text-sm font-semibold">Pay first — your account is created after payment</div>
+                <GuestCheckoutForm planId={plan.id} guidelines={guidelines} />
+                <p className="mt-4 text-center text-xs text-muted">Paid at the Paybill already? <Link href="/claim" className="font-semibold text-brand-ink hover:underline">Claim with your M-Pesa code</Link></p>
+              </div>
+            ) : renewBlocked ? (
               <p className="text-sm text-muted">You can renew once your current period ends.</p>
             ) : (
               <CheckoutPlanButton planId={plan.id} label={current ? "Renew with M-Pesa" : "Continue to payment"} />

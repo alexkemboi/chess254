@@ -6,7 +6,8 @@ import { after, before, describe, test } from "node:test";
 import assert from "node:assert/strict";
 import path from "node:path";
 import { chromium, type Browser, type Page } from "playwright";
-import { prisma, makeUser, cleanup, completePayment, APP_URL, TEST_PASSWORD, TEST_PREFIX } from "./helpers";
+import { createHash, randomBytes } from "node:crypto";
+import { prisma, makeUser, cleanup, completePayment, APP_URL, TEST_DOMAIN, TEST_PASSWORD, TEST_PREFIX } from "./helpers";
 
 const SHOTS = process.env.SCREENSHOT_DIR;
 const startedAt = new Date();
@@ -88,29 +89,29 @@ describe("public site", () => {
     await page.close();
   });
 
-  test("the theme toggle switches to light mode and persists across reloads", async () => {
+  test("the theme toggle switches to dark mode and persists across reloads", async () => {
     const context = await browser.newContext({ viewport: { width: 1440, height: 900 } });
     const page = await context.newPage();
     const theme = () => page.evaluate(() => document.documentElement.className.match(/\b(light|dark)\b/)?.[1]);
     const bg = () => page.evaluate(() => getComputedStyle(document.body).backgroundColor);
     await page.goto(APP_URL, { waitUntil: "networkidle" });
-    assert.equal(await theme(), "dark", "dark by default");
-    const darkBg = await bg();
-    await page.getByRole("button", { name: "Switch to light mode" }).first().click();
-    assert.equal(await theme(), "light");
+    assert.equal(await theme(), "light", "light by default");
+    const lightBg = await bg();
+    await page.getByRole("button", { name: "Switch to dark mode" }).first().click();
+    assert.equal(await theme(), "dark");
     // Wait out the 0.3s colour transition before reading the background.
     await page.waitForTimeout(500);
-    assert.notEqual(await bg(), darkBg, "background changes");
+    assert.notEqual(await bg(), lightBg, "background changes");
     // The saved choice is applied before first paint on the next load and on other pages.
     await page.goto(`${APP_URL}/coaches`, { waitUntil: "commit" });
     await page.waitForSelector("body");
-    assert.equal(await theme(), "light", "applied before hydration");
+    assert.equal(await theme(), "dark", "applied before hydration");
     await page.reload({ waitUntil: "networkidle" });
-    assert.equal(await theme(), "light", "persists after reload");
-    await shot(page, "coaches-light");
-    await page.getByRole("button", { name: "Switch to dark mode" }).first().click();
+    assert.equal(await theme(), "dark", "persists after reload");
+    await shot(page, "coaches-dark");
+    await page.getByRole("button", { name: "Switch to light mode" }).first().click();
     await page.reload({ waitUntil: "networkidle" });
-    assert.equal(await theme(), "dark");
+    assert.equal(await theme(), "light");
     await context.close();
   });
 
@@ -179,6 +180,44 @@ describe("member journey", () => {
     await page.close();
   });
 
+  test("a visitor pays first, then creates the account from the emailed registration link", async () => {
+    const page = await browser.newPage({ viewport: { width: 390, height: 844 } });
+    watch(page, "pay-first");
+    const email = `guest-${Date.now()}${TEST_DOMAIN}`;
+    const plan = await prisma.membershipPlan.findUniqueOrThrow({ where: { slug: "clubhouse-sparring" } });
+    await page.goto(`${APP_URL}/join/${plan.slug}`);
+    await page.fill("input[name=name]", `${TEST_PREFIX}Guest Payer`);
+    await page.fill("input[name=email]", email);
+    await page.fill("input[name=phone]", "0712345678");
+    await page.check("input[name=terms]");
+    await page.getByRole("button", { name: /Continue to M-Pesa payment/ }).click();
+    await page.waitForURL(/\/checkout\//);
+    const pending = await prisma.user.findUniqueOrThrow({ where: { email } });
+    assert.equal(pending.passwordHash, "", "no password before payment");
+    await page.getByRole("button", { name: /with M-Pesa/ }).click();
+    await page.getByText("Check your phone").first().waitFor({ timeout: 10000 });
+    await completePayment({ result: "success" });
+    await page.getByText("Check your email").waitFor({ timeout: 20000 });
+    assert.ok(await noHorizontalOverflow(page), "guest checkout fits a phone screen");
+    await shot(page, "pay-first-confirmed");
+    assert.equal((await prisma.membership.findFirstOrThrow({ where: { userId: pending.id } })).status, "ACTIVE");
+    assert.equal(await prisma.verificationToken.count({ where: { userId: pending.id, type: "ACCOUNT_SETUP", usedAt: null } }), 1, "registration link issued after payment");
+
+    // The emailed token is hashed at rest, so issue a known one the same way to follow the link.
+    const token = randomBytes(24).toString("base64url");
+    await prisma.verificationToken.create({ data: { userId: pending.id, type: "ACCOUNT_SETUP", tokenHash: createHash("sha256").update(token).digest("hex"), expiresAt: new Date(Date.now() + 3600_000) } });
+    await page.goto(`${APP_URL}/complete-registration?token=${token}`);
+    await page.getByText("Almost there.").waitFor();
+    await page.fill("input[name=password]", TEST_PASSWORD);
+    await page.fill("input[name=confirm]", TEST_PASSWORD);
+    await page.getByRole("button", { name: "Create my account" }).click();
+    await page.waitForURL(/\/dashboard\/membership/);
+    await page.getByText(plan.name).first().waitFor();
+    const done = await prisma.user.findUniqueOrThrow({ where: { email } });
+    assert.ok(done.passwordHash && done.emailVerifiedAt, "account is complete");
+    await page.close();
+  });
+
   test("a member books a coaching session from the calendar", async () => {
     const coachUser = await makeUser("e2e-coach", "COACH");
     const weekdays = [0, 1, 2, 3, 4, 5, 6];
@@ -219,6 +258,174 @@ describe("member journey", () => {
     const post = await prisma.communityPost.findFirstOrThrow({ where: { authorId: member.id } });
     assert.equal(post.commentCount, 1);
     assert.equal(post.likeCount, 1);
+    await page.close();
+  });
+});
+
+describe("camp registration journey", () => {
+  test("a parent registers week by week on phone, tablet and desktop, then pays by M-Pesa", async () => {
+    // Copy the real camp's form into a test event so the journey exercises the configured fields.
+    const source = await prisma.event.findUnique({ where: { slug: "minichess-holiday-camp" } });
+    assert.ok(source, "Holiday Camp is seeded");
+    const start = Date.now() + 30 * 86400_000;
+    const day = 86400_000;
+    const camp = await prisma.event.create({
+      data: {
+        title: `${TEST_PREFIX}Camp journey`,
+        slug: `test-camp-journey-${Date.now()}`,
+        type: "TRAINING_CAMP",
+        description: "Test",
+        status: "PUBLISHED",
+        registrationMode: "FORM",
+        sessionLabel: "Week",
+        submitLabel: "Register for Holiday Camp",
+        formFields: source.formFields ?? [],
+        startsAt: new Date(start),
+        endsAt: new Date(start + 11 * day),
+        sessions: { create: [0, 1, 2].map((w) => ({ label: `Week ${w + 1}`, startsAt: new Date(start + w * 7 * day), endsAt: new Date(start + (w * 7 + 4) * day), paymentDeadline: new Date(start + (w * 7 - 7) * day), position: w })) },
+        packages: { create: [{ name: "Half Day", price: 4500, position: 0 }, { name: "Full Day", price: 6500, position: 1 }] },
+      },
+    });
+
+    for (const viewport of [{ width: 390, height: 844, name: "phone" }, { width: 820, height: 1180, name: "tablet" }, { width: 1440, height: 900, name: "desktop" }]) {
+      const page = await browser.newPage({ viewport });
+      watch(page, `camp-${viewport.name}`);
+      const email = `camp-${viewport.name}-${Date.now()}${TEST_DOMAIN}`;
+      await page.goto(`${APP_URL}/events/${camp.slug}`);
+      await page.getByRole("link", { name: "Register for Holiday Camp" }).first().click();
+      await page.waitForURL(/\/register$/);
+
+      // Step 1 — Continue stays inactive until the required answers are valid.
+      await page.getByText("Step 1 of 4").waitFor();
+      const next = page.getByRole("button", { name: "Continue" });
+      assert.equal(await next.getAttribute("aria-disabled"), "true");
+      await page.fill("#field-child_name", `Kid ${viewport.name}`);
+      await page.fill("#field-child_age", "9");
+      await page.getByRole("radio", { name: "Beginner" }).click();
+      assert.equal(await next.getAttribute("aria-disabled"), "false");
+      await next.click();
+
+      // Step 2 — week cards with a live total.
+      await page.getByText("Step 2 of 4").waitFor();
+      await page.getByRole("radiogroup", { name: "Week 1 attendance" }).getByRole("radio", { name: /Full Day/ }).click();
+      await page.getByRole("radiogroup", { name: "Week 3 attendance" }).getByRole("radio", { name: /Half Day/ }).click();
+      await page.getByText("KSh 11,000").first().waitFor();
+      assert.ok(await noHorizontalOverflow(page), `${viewport.name}: weeks fit the screen`);
+      await shot(page, `camp-weeks-${viewport.name}`);
+      await next.click();
+
+      // Step 3 — answers survive going back and forward.
+      await page.getByText("Step 3 of 4").waitFor();
+      await page.getByRole("button", { name: /Back/ }).click();
+      await page.getByText("Step 2 of 4").waitFor();
+      await page.getByText("KSh 11,000").first().waitFor();
+      await next.click();
+      await page.fill("#field-parent_name", "Test Parent");
+      await page.fill("#field-parent_phone", "712345678");
+      await page.fill("#field-parent_email", email);
+      await page.fill("#field-emergency_name", "Aunt Test");
+      await page.fill("#field-emergency_phone", "+254722000000");
+      await page.fill("#field-authorised_collector", "Aunt Test 0722 000 000");
+      await page.getByRole("radio", { name: "Yes, I consent" }).click();
+      assert.equal(await page.inputValue("#field-parent_phone"), "0712 345 678", "Kenyan numbers are formatted");
+      await next.click();
+
+      // Step 4 — review, edit link, payment options, submit once.
+      await page.getByText("Step 4 of 4").waitFor();
+      await page.getByText("Week 1 · Full Day").waitFor();
+      await page.getByRole("radio", { name: "M-Pesa" }).click();
+      assert.equal(await page.locator("#field-payment_reference").count(), 0, "reference only when already paid");
+      await page.getByRole("radio", { name: "Yes", exact: true }).click();
+      await page.locator("#field-payment_reference").waitFor();
+      await page.getByRole("radio", { name: "No, please send payment instructions" }).click();
+      await page.getByText(/I confirm I am the child/).click();
+      await shot(page, `camp-review-${viewport.name}`);
+      const submit = page.getByRole("button", { name: "Register for Holiday Camp" });
+      assert.equal(await submit.getAttribute("aria-disabled"), "false", "submit is enabled once everything is valid");
+      await Promise.all([page.waitForURL(/\/registrations\/EV-/, { timeout: 20000 }), submit.click()]);
+      await page.getByText("You're registered!").waitFor();
+      const reg = await prisma.eventRegistration.findFirstOrThrow({ where: { contactEmail: email }, include: { items: true } });
+      assert.equal(reg.price.toString(), "11000");
+      assert.equal(reg.items.length, 2);
+      assert.equal(reg.contactPhone, "0712 345 678");
+      await page.getByText(reg.reference).first().waitFor();
+      assert.ok(await noHorizontalOverflow(page), `${viewport.name}: success screen fits`);
+      await page.getByText("Invite another family").waitFor();
+
+      if (viewport.name === "phone") {
+        await page.getByRole("button", { name: /Pay KSh 11,000 with M-Pesa/ }).click();
+        await page.getByText("Check your phone").first().waitFor({ timeout: 10000 });
+        await completePayment({ result: "success" });
+        await page.getByText("Payment confirmed").waitFor({ timeout: 20000 });
+        assert.equal(await page.getByText("Change weeks or number").count(), 0);
+        await shot(page, "camp-paid-phone");
+        const paid = await prisma.eventRegistration.findUniqueOrThrow({ where: { id: reg.id } });
+        assert.equal(paid.feeStatus, "PAID", "verified by the backend");
+        assert.equal(paid.status, "CONFIRMED");
+      }
+      await page.close();
+    }
+  });
+});
+
+describe("merchandise shop", () => {
+  test("a guest picks a size, checks out on a phone and pays by M-Pesa", async () => {
+    const n = Date.now().toString(36);
+    const category = await prisma.productCategory.create({ data: { name: `${TEST_PREFIX}Apparel ${n}`, slug: `test-apparel-${n}` } });
+    await prisma.deliveryOption.create({ data: { name: `${TEST_PREFIX}Front desk pick-up`, method: "COLLECTION", fee: 0, counties: [], position: -100 } });
+    const product = await prisma.product.create({
+      data: {
+        name: `${TEST_PREFIX}Club Hoodie ${n}`,
+        slug: `test-hoodie-${n}`,
+        sku: `TEST-HOODIE-${n}`.toUpperCase(),
+        categoryId: category.id,
+        description: "Warm **club** hoodie.",
+        price: 2500,
+        salePrice: 2200,
+        status: "PUBLISHED",
+        images: { create: [{ url: "/gallery/minichesphotos/rubber-board-walnut.jpeg", alt: "Test", position: 0 }] },
+        variants: { create: [{ sku: `TEST-HOODIE-${n}-M`.toUpperCase(), name: "M", options: { Size: "M" }, stockOnHand: 3, position: 0 }, { sku: `TEST-HOODIE-${n}-L`.toUpperCase(), name: "L", options: { Size: "L" }, stockOnHand: 0, position: 1 }] },
+      },
+      include: { variants: true },
+    });
+    const email = `hoodie-${n}${TEST_DOMAIN}`;
+    const page = await browser.newPage({ viewport: { width: 390, height: 844 } });
+    watch(page, "shop");
+    await page.goto(`${APP_URL}/shop/${product.slug}`, { waitUntil: "networkidle" });
+    assert.ok(await noHorizontalOverflow(page), "product page fits a phone");
+    await page.getByText("KSh 2,200").first().waitFor();
+    await page.getByRole("button", { name: "L", exact: true }).click();
+    await page.getByText("Sold out").first().waitFor();
+    await page.getByRole("button", { name: "M", exact: true }).click();
+    await page.getByRole("button", { name: "Increase quantity" }).click();
+    await page.getByRole("button", { name: "Add to cart" }).click();
+    await page.getByText("Added to your cart").waitFor();
+    await shot(page, "shop-product-phone");
+
+    await page.goto(`${APP_URL}/shop/cart`, { waitUntil: "networkidle" });
+    await page.getByText("KSh 4,400").first().waitFor();
+    assert.ok(await noHorizontalOverflow(page), "cart fits a phone");
+    await Promise.all([page.waitForURL(/\/shop\/checkout/), page.getByRole("link", { name: "Checkout" }).click()]);
+    await page.fill("#name", "Test Shopper");
+    await page.fill("#email", email);
+    await page.fill("#phone", "0712 345 678");
+    await page.getByText(`${TEST_PREFIX}Front desk pick-up`).click();
+    await page.getByRole("button", { name: /Place order · KSh 4,400/ }).waitFor();
+    assert.ok(await noHorizontalOverflow(page), "checkout fits a phone");
+    await shot(page, "shop-checkout-phone");
+    await Promise.all([page.waitForURL(/\/shop\/orders\//, { timeout: 20000 }), page.getByRole("button", { name: /Place order/ }).click()]);
+
+    const order = await prisma.shopOrder.findFirstOrThrow({ where: { customerEmail: email } });
+    assert.equal(order.total.toString(), "4400", "server-side price");
+    assert.equal((await prisma.productVariant.findFirstOrThrow({ where: { sku: `TEST-HOODIE-${n}-M`.toUpperCase() } })).stockReserved, 2);
+    await page.getByRole("button", { name: /Pay KSh 4,400 with M-Pesa/ }).click();
+    await page.getByText("Check your phone").first().waitFor({ timeout: 10000 });
+    await completePayment({ result: "success" });
+    await page.getByText("Payment confirmed").first().waitFor({ timeout: 20000 });
+    await shot(page, "shop-paid-phone");
+    const paid = await prisma.shopOrder.findUniqueOrThrow({ where: { id: order.id } });
+    assert.equal(paid.status, "PAID", "verified by the backend");
+    assert.equal((await prisma.productVariant.findFirstOrThrow({ where: { sku: `TEST-HOODIE-${n}-M`.toUpperCase() } })).stockOnHand, 1);
     await page.close();
   });
 });

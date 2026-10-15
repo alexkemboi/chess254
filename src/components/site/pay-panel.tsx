@@ -6,6 +6,7 @@ import { CheckCircle2, Loader2, RefreshCw, Smartphone, XCircle } from "lucide-re
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { checkPaymentStatusAction, payOrderAction } from "@/actions/commerce";
+import { guestCheckPaymentAction, guestPayAction } from "@/actions/guest";
 
 type Status = "idle" | "starting" | "PROCESSING" | "SUCCESS" | "FAILED" | "CANCELLED" | "EXPIRED" | "PENDING";
 
@@ -13,18 +14,22 @@ type Status = "idle" | "starting" | "PROCESSING" | "SUCCESS" | "FAILED" | "CANCE
  * M-Pesa STK flow. The success screen is shown only after the backend reports
  * the payment settled — the browser never decides that a payment succeeded.
  */
-export function PayPanel({ orderId, amountLabel, defaultPhone, inFlightPaymentId, successHref, successLabel }: { orderId: string; amountLabel: string; defaultPhone: string; inFlightPaymentId: string | null; successHref: string; successLabel: string }) {
+export function PayPanel({ orderId, amountLabel, defaultPhone, inFlightPaymentId, successHref, successLabel, guest, onSettled }: { orderId: string; amountLabel: string; defaultPhone: string; inFlightPaymentId: string | null; successHref: string; successLabel: string; guest?: { orderKey: string; email: string; booking?: boolean }; onSettled?: (status: string) => void }) {
   const [status, setStatus] = React.useState<Status>(inFlightPaymentId ? "PROCESSING" : "idle");
   const [paymentId, setPaymentId] = React.useState<string | null>(inFlightPaymentId);
   const [reason, setReason] = React.useState<string | null>(null);
   const [receipt, setReceipt] = React.useState<string | null>(null);
   const [elapsed, setElapsed] = React.useState(0);
   const [checking, setChecking] = React.useState(false);
+  const guestKey = guest?.orderKey;
+  React.useEffect(() => {
+    if (status === "SUCCESS") onSettled?.(status);
+  }, [status, onSettled]);
 
   async function checkNow() {
     if (!paymentId) return;
     setChecking(true);
-    const res = await checkPaymentStatusAction(paymentId);
+    const res = guest ? await guestCheckPaymentAction(orderId, guest.orderKey, paymentId) : await checkPaymentStatusAction(paymentId);
     setChecking(false);
     if (!res.ok) {
       toast.error(res.error);
@@ -58,7 +63,7 @@ export function PayPanel({ orderId, amountLabel, defaultPhone, inFlightPaymentId
       if (stopped) return;
       setElapsed(Math.round((Date.now() - started) / 1000));
       try {
-        const res = await fetch(`/api/payments/${paymentId}`, { cache: "no-store" });
+        const res = await fetch(`/api/payments/${paymentId}${guestKey ? `?k=${encodeURIComponent(guestKey)}` : ""}`, { cache: "no-store" });
         if (res.ok) {
           const data = (await res.json()) as { status: Status; receipt: string | null; failureReason: string | null };
           if (data.status === "SUCCESS") {
@@ -83,12 +88,12 @@ export function PayPanel({ orderId, amountLabel, defaultPhone, inFlightPaymentId
       stopped = true;
       clearTimeout(t);
     };
-  }, [paymentId, status]);
+  }, [paymentId, status, guestKey]);
 
   async function submit(formData: FormData) {
     setStatus("starting");
     setReason(null);
-    const res = await payOrderAction(orderId, formData);
+    const res = guest ? await guestPayAction(orderId, guest.orderKey, formData) : await payOrderAction(orderId, formData);
     if (!res.ok) {
       toast.error(res.error);
       setStatus("idle");
@@ -97,6 +102,32 @@ export function PayPanel({ orderId, amountLabel, defaultPhone, inFlightPaymentId
     toast.success(res.message ?? "Check your phone");
     setPaymentId(res.data?.paymentId ?? null);
     setStatus("PROCESSING");
+  }
+
+  if (status === "SUCCESS" && guest?.booking) {
+    return (
+      <div className="animate-fade-up text-center">
+        <div className="mx-auto grid size-20 place-items-center rounded-full bg-success/15 text-success"><CheckCircle2 className="size-10" /></div>
+        <h2 className="mt-6 font-display text-3xl font-extrabold tracking-tight">Payment confirmed</h2>
+        <p className="mt-2 text-muted">{amountLabel} received{receipt ? ` · M-Pesa ${receipt}` : ""}. A receipt is on its way to <span className="break-all">{guest.email}</span>.</p>
+        <Button asChild className="mt-8"><Link href={successHref}>{successLabel}</Link></Button>
+      </div>
+    );
+  }
+
+  if (status === "SUCCESS" && guest) {
+    return (
+      <div className="animate-fade-up text-center">
+        <div className="mx-auto grid size-20 place-items-center rounded-full bg-success/15 text-success"><CheckCircle2 className="size-10" /></div>
+        <h2 className="mt-6 font-display text-3xl font-extrabold tracking-tight">Payment confirmed</h2>
+        <p className="mt-2 text-muted">{amountLabel} received{receipt ? ` · M-Pesa ${receipt}` : ""}. Your membership is active.</p>
+        <div className="mx-auto mt-6 max-w-sm rounded-2xl border border-brand/30 bg-brand-soft p-4 text-sm">
+          <div className="font-semibold">Check your email</div>
+          <p className="mt-1 text-muted">We&apos;ve sent a registration link to <span className="break-all font-medium text-foreground">{guest.email}</span>. Open it to choose your password and sign in.</p>
+        </div>
+        <p className="mt-4 text-xs text-muted">No email? <Link href="/complete-registration" className="text-brand-ink underline">Resend the link</Link></p>
+      </div>
+    );
   }
 
   if (status === "SUCCESS") {

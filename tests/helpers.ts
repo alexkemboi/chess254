@@ -34,7 +34,7 @@ export async function completePayment(body: { checkoutRequestId?: string; result
 /** Removes every record created by the tests. */
 export async function cleanup(since?: Date) {
   // Tests sign in many times from one IP; reset throttles so runs are repeatable.
-  await prisma.rateLimit.deleteMany({ where: { OR: [{ key: { startsWith: "login:" } }, { key: { startsWith: "community:" } }, { key: { startsWith: "pay:" } }, { key: { startsWith: "book:" } }, { key: { startsWith: "event:" } }, { key: { startsWith: "paycheck:" } }, { key: { startsWith: "mpesa-pull:" } }] } });
+  await prisma.rateLimit.deleteMany({ where: { OR: [{ key: { startsWith: "login:" } }, { key: { startsWith: "community:" } }, { key: { startsWith: "pay:" } }, { key: { startsWith: "book:" } }, { key: { startsWith: "event:" } }, { key: { startsWith: "paycheck:" } }, { key: { startsWith: "mpesa-pull:" } }, { key: { startsWith: "event-form:" } }, { key: { startsWith: "event-pay:" } }, { key: { startsWith: "cart:" } }, { key: { startsWith: "shop-order:" } }] } });
   const users = await prisma.user.findMany({ where: { email: { endsWith: TEST_DOMAIN } }, select: { id: true } });
   const ids = users.map((u) => u.id);
   const testSessionTypes = await prisma.sessionType.findMany({ where: { name: { startsWith: TEST_PREFIX } }, select: { id: true } });
@@ -43,6 +43,13 @@ export async function cleanup(since?: Date) {
   const evIds = testEvents.map((e) => e.id);
   await prisma.membershipRenewal.deleteMany({ where: { membership: { userId: { in: ids } } } });
   await prisma.membershipPayment.deleteMany({ where: { membership: { userId: { in: ids } } } });
+  // Shop records first: shop orders reference payment orders and test products.
+  await prisma.shopOrder.deleteMany({ where: { OR: [{ userId: { in: ids } }, { items: { some: { product: { name: { startsWith: TEST_PREFIX } } } } }] } });
+  await prisma.product.deleteMany({ where: { name: { startsWith: TEST_PREFIX } } });
+  await prisma.productCategory.deleteMany({ where: { name: { startsWith: TEST_PREFIX } } });
+  await prisma.deliveryOption.deleteMany({ where: { name: { startsWith: TEST_PREFIX } } });
+  await prisma.discountCode.deleteMany({ where: { code: { startsWith: "TEST" } } });
+  await prisma.cart.deleteMany({ where: { OR: [{ userId: { in: ids } }, ...(since ? [{ createdAt: { gte: since }, items: { none: {} } }] : [])] } });
   await prisma.invoice.deleteMany({ where: { order: { userId: { in: ids } } } });
   await prisma.paymentCallback.deleteMany({ where: { payment: { userId: { in: ids } } } });
   await prisma.mpesaTransaction.deleteMany({ where: { OR: [{ payment: { userId: { in: ids } } }, { transactionId: { startsWith: PULL_TEST_PREFIX } }] } });

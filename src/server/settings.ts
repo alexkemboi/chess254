@@ -84,6 +84,20 @@ export const SETTINGS_SCHEMAS = {
     requireMembershipToPost: bool(false),
     guidelines: z.string().default(""),
   }),
+  shop: z.object({
+    enabled: bool(true),
+    title: z.string().default("Shop"),
+    tagline: z.string().default(""),
+    intro: z.string().default(""),
+    heroImage: z.string().default(""),
+    reservationMinutes: z.coerce.number().int().min(5).max(1440).default(30),
+    maxQuantityPerItem: z.coerce.number().int().min(1).max(100).default(10),
+    lowStockThreshold: z.coerce.number().int().min(0).max(1000).default(3),
+    lowStockAlerts: bool(true),
+    returnsPolicy: z.string().default(""),
+    smsUpdates: bool(false),
+    whatsappUpdates: bool(false),
+  }),
 } as const;
 
 export type SettingsGroup = keyof typeof SETTINGS_SCHEMAS;

@@ -12,18 +12,20 @@ import { formatDateTime } from "@/lib/format";
 const HOLDING: RegistrationStatus[] = ["PENDING", "CONFIRMED", "ATTENDED"];
 
 export function seatHoldingWhere(eventId: string, now = new Date()): Prisma.EventRegistrationWhereInput {
-  return { eventId, status: { in: HOLDING }, OR: [{ status: { not: "PENDING" } }, { holdExpiresAt: { gt: now } }] };
+  // Form registrations wait for payment without a timed hold (holdExpiresAt null) and keep their place.
+  return { eventId, status: { in: HOLDING }, OR: [{ status: { not: "PENDING" } }, { holdExpiresAt: null }, { holdExpiresAt: { gt: now } }] };
 }
 
 export async function seatsTaken(eventId: string, db: Tx | typeof prisma = prisma) {
   return db.eventRegistration.count({ where: seatHoldingWhere(eventId) });
 }
 
-export function registrationClosedReason(event: { status: string; registrationOpen: boolean; registrationDeadline: Date | null; startsAt: Date; deletedAt: Date | null }) {
-  if (event.deletedAt || event.status !== "PUBLISHED") return "Registration is not open for this event.";
+export function registrationClosedReason(event: { status: string; registrationOpen: boolean; registrationDeadline: Date | null; startsAt: Date; endsAt: Date; deletedAt: Date | null; archivedAt?: Date | null; registrationMode?: string }) {
+  if (event.deletedAt || event.archivedAt || event.status !== "PUBLISHED") return "Registration is not open for this event.";
   if (!event.registrationOpen) return "Registration is closed.";
   if (event.registrationDeadline && event.registrationDeadline < new Date()) return "The registration deadline has passed.";
-  if (event.startsAt < new Date()) return "This event has already started.";
+  // Multi-session form events (camps) stay open while sessions remain; single events close when they start.
+  if (event.registrationMode === "FORM" ? event.endsAt < new Date() : event.startsAt < new Date()) return event.registrationMode === "FORM" ? "This event has finished." : "This event has already started.";
   return null;
 }
 
@@ -42,10 +44,11 @@ export async function registerForEvent(userId: string, eventId: string) {
     const locked = await tx.$queryRaw<{ id: string }[]>`SELECT "id" FROM "Event" WHERE "id" = ${eventId} FOR UPDATE`;
     if (!locked.length) throw new UserError("Event not found.");
     const event = await tx.event.findUniqueOrThrow({ where: { id: eventId }, include: { location: true } });
+    if (event.registrationMode === "FORM") throw new UserError("Please use the registration form on the event page.");
     const closed = registrationClosedReason(event);
     if (closed) throw new UserError(closed);
 
-    const existing = await tx.eventRegistration.findUnique({ where: { eventId_userId: { eventId, userId } }, include: { orderItem: true } });
+    const existing = await tx.eventRegistration.findFirst({ where: { eventId, userId }, include: { orderItem: true }, orderBy: { createdAt: "desc" } });
     const now = new Date();
     if (existing && (existing.status === "CONFIRMED" || existing.status === "ATTENDED")) throw new UserError("You are already registered for this event.");
     if (existing && existing.status === "PENDING" && existing.holdExpiresAt && existing.holdExpiresAt > now && existing.orderItem) {

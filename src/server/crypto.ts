@@ -50,3 +50,9 @@ export function decrypt(record: { ciphertext: string; iv: string; tag: string })
   decipher.setAuthTag(Buffer.from(record.tag, "base64"));
   return Buffer.concat([decipher.update(Buffer.from(record.ciphertext, "base64")), decipher.final()]).toString("utf8");
 }
+
+/** Unforgeable per-record key (e.g. a guest's link to their own order). */
+export function signedKey(purpose: string, id: string) {
+  const secret = process.env.WEBHOOK_SECRET || requireSecret("AUTH_SECRET");
+  return createHmac("sha256", secret).update(`${purpose}:${id}`).digest("base64url").slice(0, 32);
+}

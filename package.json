@@ -11,6 +11,8 @@
     "db:generate": "prisma generate",
     "db:migrate": "prisma migrate dev",
     "db:seed": "tsx prisma/seed.ts",
+    "db:seed:events": "tsx prisma/seed-events.ts",
+    "db:seed:shop": "tsx prisma/seed-shop.ts",
     "db:seed:demo": "tsx prisma/seed-demo.ts",
     "db:demo:remove": "tsx prisma/seed-demo.ts --remove",
     "test": "node tests/run.mjs",

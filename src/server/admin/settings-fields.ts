@@ -72,4 +72,18 @@ export const SETTINGS_FORMS: Record<SettingsGroup, { title: string; description:
     { name: "requireMembershipToPost", label: "Only active members can start posts", type: "switch" },
     { name: "guidelines", label: "Community guidelines", type: "textarea", span: 2 },
   ] },
+  shop: { title: "Shop", description: "Merchandise storefront copy, stock reservations, limits and order update channels.", fields: [
+    { name: "enabled", label: "Shop open to customers", type: "switch", help: "When off, the storefront shows a closed notice and checkout is disabled." },
+    { name: "title", label: "Storefront title", type: "text" },
+    { name: "tagline", label: "Storefront tagline", type: "text" },
+    { name: "intro", label: "Storefront intro", type: "textarea", span: 2 },
+    { name: "heroImage", label: "Storefront hero image", type: "image", span: 2 },
+    { name: "reservationMinutes", label: "Hold stock for unpaid orders (minutes)", type: "number", help: "Stock is reserved at checkout and released if M-Pesa doesn't confirm in time." },
+    { name: "maxQuantityPerItem", label: "Max quantity per item", type: "number" },
+    { name: "lowStockThreshold", label: "Default low-stock threshold", type: "number", help: "Products and variants can override this." },
+    { name: "lowStockAlerts", label: "Alert admins when stock runs low", type: "switch" },
+    { name: "returnsPolicy", label: "Delivery & returns policy", type: "textarea", span: 2 },
+    { name: "smsUpdates", label: "Send order updates by SMS (when an SMS provider is installed)", type: "switch" },
+    { name: "whatsappUpdates", label: "Send order updates by WhatsApp (when a WhatsApp provider is installed)", type: "switch" },
+  ] },
 };

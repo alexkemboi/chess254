@@ -3,7 +3,7 @@ import * as React from "react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import { toast } from "sonner";
-import { Eye, FileUp, Loader2, Pencil, Plus, Trash2, Upload, X } from "lucide-react";
+import { ArrowDown, ArrowUp, Eye, FileUp, Loader2, Pencil, Plus, Trash2, Upload, X } from "lucide-react";
 import type { FieldDef, FormValues } from "@/lib/fields";
 import type { ActionResult } from "@/lib/action";
 import { ActionForm, Field, SubmitButton } from "@/components/forms/action-form";
@@ -23,7 +23,7 @@ export function ResourceForm({ fields, values, action, isNew, submitLabel = "Sav
         {visible.map((field) => (
           <React.Fragment key={field.name}>
             {field.section && <h3 className="eyebrow col-span-full mt-4 border-t border-border pt-6 text-muted">{field.section}</h3>}
-            <div className={cn(field.span === 2 || ["markdown", "repeater", "image", "multiselect"].includes(field.type) ? "sm:col-span-2" : "")}>
+            <div className={cn(field.span === 2 || ["markdown", "repeater", "image", "images", "multiselect"].includes(field.type) ? "sm:col-span-2" : "")}>
               <FieldInput field={field} value={values[field.name]} />
             </div>
           </React.Fragment>
@@ -92,6 +92,9 @@ export function FieldInput({ field, value }: { field: FieldDef; value: unknown }
       break;
     case "repeater":
       control = <Repeater field={field} defaultValue={Array.isArray(value) ? (value as Record<string, unknown>[]) : []} />;
+      break;
+    case "images":
+      control = <ImagesInput name={field.name} defaultValue={Array.isArray(value) ? (value as { url: string; alt?: string }[]) : []} />;
       break;
     default:
       control = <Input {...common} type={field.type === "url" ? "text" : "text"} defaultValue={str(value)} />;
@@ -190,6 +193,64 @@ export function UploadInput({ name, kind, defaultValue }: { name: string; kind: 
   );
 }
 
+/** Ordered photo set: upload several at once, reorder (first = cover), alt text, remove. */
+function ImagesInput({ name, defaultValue }: { name: string; defaultValue: { url: string; alt?: string }[] }) {
+  const [images, setImages] = React.useState(defaultValue.map((i) => ({ url: i.url, alt: i.alt ?? "" })));
+  const [busy, setBusy] = React.useState(0);
+  const [urlInput, setUrlInput] = React.useState("");
+  const ref = React.useRef<HTMLInputElement>(null);
+  async function upload(files: FileList) {
+    const list = [...files].slice(0, 12);
+    setBusy(list.length);
+    for (const file of list) {
+      const fd = new FormData();
+      fd.set("file", file);
+      fd.set("kind", "image");
+      const res = await uploadAction(fd);
+      setBusy((n) => n - 1);
+      if (res.ok && res.data) setImages((imgs) => [...imgs, { url: res.data!.url, alt: "" }]);
+      else if (!res.ok) toast.error(`${file.name}: ${res.error}`);
+    }
+  }
+  return (
+    <div className="grid gap-3">
+      <input type="hidden" name={name} value={JSON.stringify(images)} />
+      {images.length > 0 && (
+        <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
+          {images.map((img, i) => (
+            <div key={`${img.url}-${i}`} className="overflow-hidden rounded-xl border border-border bg-surface-2">
+              <div className="relative aspect-square bg-white">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img src={img.url} alt="" className="size-full object-cover" />
+                {i === 0 && <span className="absolute left-2 top-2 rounded-full bg-brand px-2 py-0.5 text-[10px] font-bold uppercase text-brand-foreground">Cover</span>}
+                <button type="button" onClick={() => setImages((imgs) => imgs.filter((_, j) => j !== i))} className="absolute right-2 top-2 rounded-full bg-black/70 p-1.5 text-white" aria-label="Remove photo"><X className="size-3.5" /></button>
+              </div>
+              <div className="flex items-center gap-1 p-2">
+                <input value={img.alt} onChange={(e) => setImages((imgs) => imgs.map((x, j) => (j === i ? { ...x, alt: e.target.value } : x)))} placeholder="Alt text" className="h-8 min-w-0 flex-1 rounded-lg border border-border bg-surface px-2 text-xs outline-none focus:border-brand" />
+                <Button type="button" variant="ghost" size="icon-sm" disabled={i === 0} onClick={() => setImages((imgs) => move(imgs, i, -1))} aria-label="Move earlier"><ArrowUp className="-rotate-90" /></Button>
+                <Button type="button" variant="ghost" size="icon-sm" disabled={i === images.length - 1} onClick={() => setImages((imgs) => move(imgs, i, 1))} aria-label="Move later"><ArrowDown className="-rotate-90" /></Button>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+      <div className="flex flex-wrap gap-2">
+        <input ref={ref} type="file" hidden multiple accept="image/jpeg,image/png,image/webp,image/gif" onChange={(e) => { if (e.target.files?.length) upload(e.target.files); e.target.value = ""; }} />
+        <Button type="button" variant="secondary" onClick={() => ref.current?.click()} disabled={busy > 0}>{busy > 0 ? <Loader2 className="animate-spin" /> : <Upload />}{busy > 0 ? `Uploading ${busy}…` : "Upload photos"}</Button>
+        <Input value={urlInput} onChange={(e) => setUrlInput(e.target.value)} placeholder="…or paste /path or https:// URL" className="h-11 max-w-xs font-mono text-xs" />
+        <Button type="button" variant="ghost" disabled={!urlInput.trim()} onClick={() => { setImages((imgs) => [...imgs, { url: urlInput.trim(), alt: "" }]); setUrlInput(""); }}><Plus />Add</Button>
+      </div>
+      <p className="text-xs text-muted">The first photo is the cover. Square photos look best.</p>
+    </div>
+  );
+}
+
+function move<T>(rows: T[], i: number, dir: -1 | 1) {
+  const next = [...rows];
+  [next[i], next[i + dir]] = [next[i + dir], next[i]];
+  return next;
+}
+
 function Repeater({ field, defaultValue }: { field: FieldDef; defaultValue: Record<string, unknown>[] }) {
   const [rows, setRows] = React.useState<Record<string, unknown>[]>(defaultValue);
   const subs = field.fields ?? [];
@@ -210,10 +271,16 @@ function Repeater({ field, defaultValue }: { field: FieldDef; defaultValue: Reco
               ) : s.type === "switch" ? (
                 <input type="checkbox" checked={row[s.name] === true || row[s.name] === "true"} onChange={(e) => set(i, s.name, e.target.checked)} className="size-5 accent-[var(--brand)]" />
               ) : (
-                <Input value={str(row[s.name])} type={s.type === "time" ? "time" : s.type === "date" ? "date" : s.type === "number" ? "number" : "text"} onChange={(e) => set(i, s.name, e.target.value)} className="h-10" />
+                <Input value={str(row[s.name])} type={s.type === "time" ? "time" : s.type === "date" ? "date" : s.type === "datetime" ? "datetime-local" : s.type === "number" || s.type === "money" ? "number" : "text"} step={s.type === "money" ? "0.01" : undefined} onChange={(e) => set(i, s.name, e.target.value)} className="h-10" />
               )}
             </label>
           ))}
+          {rows.length > 1 && (
+            <span className="flex">
+              <Button type="button" variant="ghost" size="icon-sm" disabled={i === 0} onClick={() => setRows((r) => move(r, i, -1))} aria-label="Move up"><ArrowUp /></Button>
+              <Button type="button" variant="ghost" size="icon-sm" disabled={i === rows.length - 1} onClick={() => setRows((r) => move(r, i, 1))} aria-label="Move down"><ArrowDown /></Button>
+            </span>
+          )}
           <Button type="button" variant="ghost" size="icon-sm" onClick={() => setRows((r) => r.filter((_, j) => j !== i))} aria-label="Remove row"><Trash2 /></Button>
         </div>
       ))}

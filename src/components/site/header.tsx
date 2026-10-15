@@ -3,7 +3,7 @@ import * as React from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { DropdownMenu, Dialog as D } from "radix-ui";
-import { Bell, ChevronDown, LayoutDashboard, LogOut, Menu, Search, Shield, Sparkles, User } from "lucide-react";
+import { Bell, ChevronDown, LayoutDashboard, LogOut, Menu, Package, Search, Shield, ShoppingBag, Sparkles, User } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { SheetContent } from "@/components/ui/dialog";
 import { cn, initials } from "@/lib/utils";
@@ -22,7 +22,10 @@ export const NAV = [
 
 export type NavUser = { name: string; email: string; unread: number; canAdmin: boolean; isCoach: boolean } | null;
 
-export function Header({ logo, user }: { logo: React.ReactNode; user: NavUser }) {
+export type ShopNav = { live: boolean; cartCount: number };
+
+export function Header({ logo, user, shop = { live: false, cartCount: 0 } }: { logo: React.ReactNode; user: NavUser; shop?: ShopNav }) {
+  const nav = shop.live ? [...NAV.slice(0, 3), { href: "/shop", label: "Shop" }, ...NAV.slice(3)] : NAV;
   const pathname = usePathname();
   const [scrolled, setScrolled] = React.useState(false);
   const [menuOpen, setMenuOpen] = React.useState(false);
@@ -51,7 +54,7 @@ export function Header({ logo, user }: { logo: React.ReactNode; user: NavUser })
         <div className="shrink-0">{logo}</div>
         <nav className="hidden flex-1 items-center justify-center xl:flex" aria-label="Main">
           <div className="flex items-center gap-0.5 rounded-full p-1">
-            {NAV.map((item) => (
+            {nav.map((item) => (
               <Link
                 key={item.href}
                 href={item.href}
@@ -72,6 +75,12 @@ export function Header({ logo, user }: { logo: React.ReactNode; user: NavUser })
             <Search className="size-[18px]" />
           </Link>
           <ThemeToggle className="hidden sm:grid" />
+          {(shop.live || shop.cartCount > 0) && (
+            <Link href="/shop/cart" className={cn(iconBtn, "relative size-9 sm:size-10", shop.cartCount === 0 && "hidden sm:grid")} aria-label={`Cart${shop.cartCount ? ` (${shop.cartCount} items)` : ""}`}>
+              <ShoppingBag className="size-[18px]" />
+              {shop.cartCount > 0 && <span className="absolute right-1 top-1 grid min-w-4 place-items-center rounded-full bg-brand px-1 text-[10px] font-bold text-brand-foreground">{shop.cartCount > 9 ? "9+" : shop.cartCount}</span>}
+            </Link>
+          )}
           {user ? (
             <>
               <Link href="/dashboard/notifications" className={cn(iconBtn, "relative")} aria-label={`Notifications${user.unread ? ` (${user.unread} unread)` : ""}`}>
@@ -85,7 +94,7 @@ export function Header({ logo, user }: { logo: React.ReactNode; user: NavUser })
               <Button asChild variant="ghost" size="sm" className="hidden sm:inline-flex">
                 <Link href="/login">Sign in</Link>
               </Button>
-              <Button asChild size="sm" className="ml-1 h-10 shrink-0 px-5">
+              <Button asChild size="sm" className="ml-1 h-10 shrink-0 px-3.5 sm:px-5">
                 <Link href="/register"><span className="min-[440px]:hidden">Join</span><span className="max-[439px]:hidden">Join the club</span></Link>
               </Button>
             </>
@@ -99,7 +108,7 @@ export function Header({ logo, user }: { logo: React.ReactNode; user: NavUser })
             <SheetContent title="Menu">
               <div className="mb-8">{logo}</div>
               <nav className="flex flex-col gap-1" aria-label="Mobile">
-                {[...NAV, { href: "/book", label: "Book a session" }, { href: "/search", label: "Search" }, { href: "/contact", label: "Contact" }].map((item, i) => (
+                {[...nav, { href: "/book", label: "Book a session" }, { href: "/search", label: "Search" }, { href: "/contact", label: "Contact" }].map((item, i) => (
                   <Link
                     key={item.href}
                     href={item.href}
@@ -154,6 +163,7 @@ function UserMenu({ user }: { user: NonNullable<NavUser> }) {
           <DropdownMenu.Separator className="my-1 h-px bg-border" />
           <DropdownMenu.Item asChild><Link href="/dashboard" className={item}><LayoutDashboard />Dashboard</Link></DropdownMenu.Item>
           <DropdownMenu.Item asChild><Link href="/book" className={item}><Sparkles />Book a session</Link></DropdownMenu.Item>
+          <DropdownMenu.Item asChild><Link href="/dashboard/orders" className={item}><Package />Shop orders</Link></DropdownMenu.Item>
           <DropdownMenu.Item asChild><Link href="/dashboard/profile" className={item}><User />Profile</Link></DropdownMenu.Item>
           {user.isCoach && <DropdownMenu.Item asChild><Link href="/coach" className={item}><Sparkles />Coach workspace</Link></DropdownMenu.Item>}
           {user.canAdmin && <DropdownMenu.Item asChild><Link href="/admin" className={item}><Shield />Admin portal</Link></DropdownMenu.Item>}

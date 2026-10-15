@@ -21,6 +21,7 @@ export type FieldType =
   | "lines"
   | "color"
   | "repeater"
+  | "images"
   | "password";
 
 export type FieldDef = {

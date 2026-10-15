@@ -54,6 +54,9 @@ export default async function MembershipsPage() {
         ) : (
           <EmptyState title="No memberships are available right now" description="Please check back soon or contact the club." action={<Button asChild variant="secondary"><Link href="/contact">Contact us</Link></Button>} />
         )}
+        {plans.length > 0 && !user && (
+          <p className="mt-8 text-center text-sm text-muted">Pay first — your account is created after payment. Paid at the Paybill already? <Link href="/claim" className="font-semibold text-brand-ink hover:underline">Claim with your M-Pesa code</Link></p>
+        )}
 
         {faqs.length > 0 && (
           <section className="mt-24">

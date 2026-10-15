@@ -27,6 +27,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
             { href: "/dashboard/events", label: "Events" },
             { href: "/dashboard/learning", label: "Learning" },
             { href: "/dashboard/assignments", label: "Assignments", badge: openAssignments },
+            { href: "/dashboard/orders", label: "Shop orders" },
             { href: "/dashboard/payments", label: "Payments" },
             { href: "/dashboard/passes", label: "Passes" },
             { href: "/dashboard/notifications", label: "Notifications", badge: unread },

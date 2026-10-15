@@ -7,11 +7,14 @@ import { after, before, describe, test } from "node:test";
 import assert from "node:assert/strict";
 import { prisma, makeUser, cleanup, completePayment, addPulledTransaction, APP_URL, TEST_PREFIX, PULL_TEST_PREFIX } from "./helpers";
 import { syncPulledTransactions } from "@/server/payments/mpesa-pull";
+import { claimPaybillPayment } from "@/server/payments/claim";
+import { TEST_DOMAIN } from "./helpers";
 import { can } from "@/server/rbac";
 import { startMembershipCheckout } from "@/server/memberships";
 import { startPayment, reconcilePayment } from "@/server/payments/service";
 import { bookingContext, computeSlots, createBooking, quoteBooking, bookableSessionType } from "@/server/booking";
 import { registerForEvent, seatsTaken } from "@/server/events";
+import { recordItemPayments, sessionsTaken, startRegistrationPayment, submitFormRegistration } from "@/server/event-registrations";
 import { checkMove } from "@/server/puzzles";
 import { startServiceCheckout } from "@/server/services";
 import { addDaysToKey, dateKeyInZone, zonedTimeToUtc, weekdayOfKey } from "@/lib/time";
@@ -206,6 +209,43 @@ describe("M-Pesa transaction pull", () => {
   });
 });
 
+describe("Pay-first sign-up", () => {
+  const receipt = () => `${PULL_TEST_PREFIX}${Math.random().toString(36).slice(2, 7).toUpperCase()}`;
+
+  test("a Paybill payment claimed with its M-Pesa code creates a paid pending account, once", async () => {
+    const plan = await prisma.membershipPlan.findUniqueOrThrow({ where: { slug: "player-development" } });
+    const code = receipt();
+    await addPulledTransaction({ transactionId: code, billreference: "MEMBERSHIP", amount: Math.ceil(Number(plan.price)) });
+    await syncPulledTransactions({ from: new Date(Date.now() - 3600_000) });
+    const email = `claim-${Date.now()}${TEST_DOMAIN}`;
+    const input = { code, planId: plan.id, name: `${TEST_PREFIX}Claimer`, email, phone: "0708374149" };
+
+    const result = await claimPaybillPayment(input);
+    assert.equal(result.resent, false);
+    const user = await prisma.user.findUniqueOrThrow({ where: { email } });
+    assert.equal(user.passwordHash, "", "account stays pending until the link is used");
+    assert.equal((await prisma.membership.findFirstOrThrow({ where: { userId: user.id } })).status, "ACTIVE");
+    assert.equal((await prisma.payment.findUniqueOrThrow({ where: { receiptNumber: code } })).status, "SUCCESS");
+    assert.ok(await prisma.verificationToken.findFirst({ where: { userId: user.id, type: "ACCOUNT_SETUP", usedAt: null } }), "registration link issued");
+
+    const again = await claimPaybillPayment({ ...input, email: `other-${Date.now()}${TEST_DOMAIN}` });
+    assert.equal(again.resent, true, "a code can only be used once");
+    assert.equal(await prisma.membership.count({ where: { userId: user.id } }), 1);
+  });
+
+  test("claims with the wrong plan amount, wrong phone or unknown code are refused", async () => {
+    const plan = await prisma.membershipPlan.findUniqueOrThrow({ where: { slug: "player-development" } });
+    const code = receipt();
+    await addPulledTransaction({ transactionId: code, billreference: "MEMBERSHIP", amount: 1 });
+    await syncPulledTransactions({ from: new Date(Date.now() - 3600_000) });
+    const base = { planId: plan.id, name: `${TEST_PREFIX}Claimer`, email: `claim-bad-${Date.now()}${TEST_DOMAIN}`, phone: "0708374149" };
+    await assert.rejects(claimPaybillPayment({ ...base, code }), /doesn't match/);
+    assert.equal((await prisma.mpesaTransaction.findUniqueOrThrow({ where: { transactionId: code } })).matchStatus, "UNMATCHED", "a failed claim releases the code");
+    await assert.rejects(claimPaybillPayment({ ...base, code, phone: "0711111111" }), /couldn't find/);
+    await assert.rejects(claimPaybillPayment({ ...base, code: "ZZZZZZZZZZ" }), /couldn't find/);
+  });
+});
+
 describe("Booking engine", () => {
   let coachProfileId = "";
   let sessionTypeId = "";
@@ -337,6 +377,132 @@ describe("Events", () => {
     });
     const u = await makeUser("late");
     await assert.rejects(() => registerForEvent(u.id, event.id), /deadline/);
+  });
+});
+
+describe("Form events (camps)", () => {
+  const day = 86400_000;
+  async function makeCamp(opts: { weekCapacity?: number | null } = {}) {
+    const start = Date.now() + 20 * day;
+    return prisma.event.create({
+      data: {
+        title: `${TEST_PREFIX}Holiday camp`,
+        slug: `test-camp-${Date.now()}-${Math.round(Math.random() * 1e6)}`,
+        type: "TRAINING_CAMP",
+        description: "Test camp",
+        startsAt: new Date(start),
+        endsAt: new Date(start + 12 * day),
+        status: "PUBLISHED",
+        registrationMode: "FORM",
+        sessionLabel: "Week",
+        submitLabel: "Register for Test Camp",
+        formFields: [
+          { key: "child_name", label: "Child’s full name", type: "text", required: true, role: "participantName" },
+          { key: "weeks", label: "Weeks", type: "sessions", required: true },
+          { key: "parent_name", label: "Parent name", type: "text", required: true, role: "contactName" },
+          { key: "parent_phone", label: "Phone", type: "phone", required: true, role: "contactPhone" },
+          { key: "parent_email", label: "Email", type: "email", required: true, role: "contactEmail" },
+          { key: "health", label: "Health notes", type: "textarea", sensitive: true },
+          { key: "paid_already", label: "Paid already?", type: "select", options: ["Yes", "No"], role: "declaredPaid" },
+          { key: "payment_reference", label: "Reference", type: "text", showIf: "paid_already=Yes", role: "paymentReference" },
+          { key: "declaration", label: "I agree", type: "checkbox", required: true },
+        ],
+        sessions: {
+          create: [
+            { label: "Week 1", startsAt: new Date(start), endsAt: new Date(start + 4 * day), paymentDeadline: new Date(start - 7 * day), capacity: opts.weekCapacity ?? null, position: 0 },
+            { label: "Week 2", startsAt: new Date(start + 7 * day), endsAt: new Date(start + 11 * day), paymentDeadline: new Date(start), position: 1 },
+          ],
+        },
+        packages: { create: [{ name: "Half Day", price: 4500, position: 0 }, { name: "Full Day", price: 6500, position: 1 }] },
+      },
+      include: { sessions: { orderBy: { position: "asc" } }, packages: { orderBy: { position: "asc" } } },
+    });
+  }
+  const answers = (n: number, extra: Record<string, string> = {}) => ({ child_name: `Kid ${n}`, parent_name: "Test Parent", parent_phone: "0712345678", parent_email: `parent-${n}-${Date.now()}${TEST_DOMAIN}`, declaration: "on", health: "Peanut allergy", ...extra });
+
+  test("validates the custom form, prices each week and creates an unpaid registration", async () => {
+    const camp = await makeCamp();
+    const [w1, w2] = camp.sessions;
+    const [half, full] = camp.packages;
+    await assert.rejects(() => submitFormRegistration(camp.id, { answers: { ...answers(1), declaration: "" }, selections: { [w1.id]: half.id } }, null), (e: Error & { fieldErrors?: Record<string, string> }) => Boolean(e.fieldErrors?.declaration));
+    await assert.rejects(() => submitFormRegistration(camp.id, { answers: answers(1), selections: {} }, null), (e: Error & { fieldErrors?: Record<string, string> }) => Boolean(e.fieldErrors?.sessions));
+
+    const { registration } = await submitFormRegistration(camp.id, { answers: answers(1, { paid_already: "Yes", payment_reference: "QWE123RTY" }), selections: { [w1.id]: half.id, [w2.id]: full.id } }, null);
+    assert.equal(registration.price.toString(), "11000", "4,500 + 6,500");
+    assert.equal(registration.status, "PENDING");
+    assert.equal(registration.feeStatus, "UNPAID");
+    assert.equal(registration.participantName, "Kid 1");
+    assert.equal(registration.declaredReference, "QWE123RTY", "declared reference stored but not verified");
+    assert.equal(registration.items.length, 2);
+    const stored = registration.answers as { key: string; sensitive: boolean }[];
+    assert.ok(stored.find((a) => a.key === "health")?.sensitive, "health answer flagged sensitive");
+    const user = await prisma.user.findUniqueOrThrow({ where: { id: registration.userId } });
+    assert.equal(user.passwordHash, "", "contact gets a pending account, never a login");
+  });
+
+  test("paying week by week with M-Pesa moves the fee from unpaid to partial to paid", async () => {
+    const camp = await makeCamp();
+    const [w1, w2] = camp.sessions;
+    const [half, full] = camp.packages;
+    const { registration } = await submitFormRegistration(camp.id, { answers: answers(2), selections: { [w1.id]: half.id, [w2.id]: full.id } }, null);
+    const item1 = registration.items.find((i) => i.sessionId === w1.id)!;
+
+    const order = await startRegistrationPayment(registration.reference, [item1.id]);
+    assert.equal(order.total.toString(), "4500");
+    const again = await startRegistrationPayment(registration.reference, [item1.id]);
+    assert.equal(again.id, order.id, "same items reuse the open order");
+    const payment = await startPayment(registration.userId, order.id, "0712345678");
+    await completePayment({ checkoutRequestId: payment.checkoutRequestId!, result: "success" });
+    let reg = await prisma.eventRegistration.findUniqueOrThrow({ where: { id: registration.id }, include: { paymentRecords: true } });
+    assert.equal(reg.feeStatus, "PARTIAL");
+    assert.equal(reg.status, "CONFIRMED", "confirmed once a payment is verified");
+    assert.equal(reg.amountPaid.toString(), "4500");
+    assert.equal(reg.paymentRecords.length, 1);
+    assert.equal(reg.paymentRecords[0].paymentId, payment.id);
+
+    const rest = await startRegistrationPayment(registration.reference, registration.items.map((i) => i.id));
+    assert.equal(rest.total.toString(), "6500", "only unpaid weeks are charged");
+    const payment2 = await startPayment(registration.userId, rest.id, "0712345678");
+    await completePayment({ checkoutRequestId: payment2.checkoutRequestId!, result: "success" });
+    reg = await prisma.eventRegistration.findUniqueOrThrow({ where: { id: registration.id }, include: { paymentRecords: true } });
+    assert.equal(reg.feeStatus, "PAID");
+    assert.equal(reg.amountPaid.toString(), "11000");
+    await assert.rejects(() => startRegistrationPayment(registration.reference, registration.items.map((i) => i.id)), /Nothing is left to pay/);
+  });
+
+  test("staff-verified payments are recorded per week with a ledger entry", async () => {
+    const camp = await makeCamp();
+    const [w1] = camp.sessions;
+    const { registration } = await submitFormRegistration(camp.id, { answers: answers(3), selections: { [w1.id]: camp.packages[1].id } }, null);
+    const admin = await makeUser("camp-admin", "ADMIN");
+    const result = await prisma.$transaction((tx) => recordItemPayments(tx, [registration.items[0].id], { method: "Bank transfer", reference: "BANK-1", recordedById: admin.id }));
+    assert.equal(result.updated[0].registration.feeStatus, "PAID");
+    const again = await prisma.$transaction((tx) => recordItemPayments(tx, [registration.items[0].id], { method: "Bank transfer", reference: "BANK-1" }));
+    assert.equal(again.alreadyPaid.length, 1, "a week can't be paid twice");
+    assert.equal(await prisma.eventPaymentRecord.count({ where: { registrationId: registration.id } }), 1);
+  });
+
+  test("week capacity and duplicate registrations are enforced", async () => {
+    const camp = await makeCamp({ weekCapacity: 1 });
+    const [w1, w2] = camp.sessions;
+    const pick = { [w1.id]: camp.packages[0].id };
+    const results = await Promise.allSettled([4, 5, 6].map((n) => submitFormRegistration(camp.id, { answers: answers(n), selections: pick }, null)));
+    assert.equal(results.filter((r) => r.status === "fulfilled").length, 1, "one place in week 1");
+    assert.ok((await sessionsTaken(camp.id)).get(w1.id) === 1);
+    const ok = await submitFormRegistration(camp.id, { answers: answers(7), selections: { [w2.id]: camp.packages[0].id } }, null);
+    await assert.rejects(() => submitFormRegistration(camp.id, { answers: { ...answers(7), parent_email: ok.registration.contactEmail! }, selections: { [w2.id]: camp.packages[0].id } }, null), /already registered/);
+  });
+
+  test("the public page renders the event's own form and sessions", async () => {
+    const camp = await makeCamp();
+    const html = await (await fetch(`${APP_URL}/events/${camp.slug}`)).text();
+    for (const text of ["Register for Test Camp", "Week 1", "Week 2", "Half Day", "Full Day", `/events/${camp.slug}/register`]) assert.ok(html.includes(text), `${text} shown`);
+    const register = await fetch(`${APP_URL}/events/${camp.slug}/register`);
+    assert.equal(register.status, 200);
+    assert.ok((await register.text()).includes(camp.title), "registration page renders");
+    await prisma.event.update({ where: { id: camp.id }, data: { archivedAt: new Date() } });
+    const hidden = await (await fetch(`${APP_URL}/events/${camp.slug}`)).text();
+    assert.ok(!hidden.includes("Register for Test Camp"), "archived events are hidden");
   });
 });
 

@@ -56,7 +56,7 @@ let code = 0;
 try {
   await waitForApp();
   console.log(`▶ app on :${APP_PORT}`);
-  if (!only || only === "integration") code ||= await run("node", ["--import", "tsx", "--conditions=react-server", "--test", "--test-concurrency=1", "tests/integration.test.ts"]);
+  if (!only || only === "integration") code ||= await run("node", ["--import", "tsx", "--conditions=react-server", "--test", "--test-concurrency=1", "tests/integration.test.ts", "tests/shop.test.ts"]);
   if (!only || only === "e2e") code ||= await run("node", ["--import", "tsx", "--test", "--test-concurrency=1", "tests/e2e.test.ts"]);
 } catch (e) {
   console.error(e);

@@ -96,10 +96,22 @@ export function PassCard({ pass, action }: { pass: Pass; action: React.ReactNode
   );
 }
 
-type EventLite = Prisma.EventGetPayload<{ include: { location: true } }>;
+type EventLite = Prisma.EventGetPayload<{ include: { location: true } }> & { packages?: { price: Prisma.Decimal }[] };
+
+/** "Free", "KSh 1,500" or, for package-priced events, "From KSh 4,500". */
+export function eventPriceText(event: EventLite) {
+  const prices = event.registrationMode === "FORM" ? (event.packages ?? []).map((p) => p.price).filter((p) => p.greaterThan(0)) : [];
+  if (prices.length) {
+    const min = prices.reduce((a, b) => (b.lessThan(a) ? b : a));
+    return `${prices.some((p) => !p.equals(min)) ? "From " : ""}${formatMoney(min, event.currency)}`;
+  }
+  return Number(event.price) ? formatMoney(event.price, event.currency) : "Free";
+}
 
 export function EventCard({ event, timezone, seatsLeft }: { event: EventLite; timezone: string; seatsLeft?: number | null }) {
-  const free = !Number(event.price);
+  const priceText = eventPriceText(event);
+  const free = priceText === "Free";
+  const multiDay = formatDate(event.startsAt, timezone) !== formatDate(event.endsAt, timezone);
   return (
     <Link href={`/events/${event.slug}`} className="group flex flex-col overflow-hidden rounded-3xl border border-border bg-surface transition-all duration-500 hover:-translate-y-1 hover:border-border-strong">
       <div className="relative aspect-[16/10] overflow-hidden bg-surface-2">
@@ -112,14 +124,14 @@ export function EventCard({ event, timezone, seatsLeft }: { event: EventLite; ti
           <div className="text-[10px] font-bold uppercase tracking-widest text-brand-ink">{formatDate(event.startsAt, timezone, { month: "short" })}</div>
           <div className="font-display text-2xl font-black leading-none">{formatDate(event.startsAt, timezone, { day: "numeric" })}</div>
         </div>
-        <Badge variant={free ? "success" : "solid"} className="absolute right-4 top-4">{free ? "Free" : formatMoney(event.price, event.currency)}</Badge>
+        <Badge variant={free ? "success" : "solid"} className="absolute right-4 top-4">{priceText}</Badge>
       </div>
       <div className="flex flex-1 flex-col p-6">
         <div className="eyebrow text-muted">{humanize(event.type)}</div>
         <h3 className="mt-2 font-display text-xl font-bold tracking-tight group-hover:text-brand-ink">{event.title}</h3>
         {event.excerpt && <p className="mt-2 line-clamp-2 text-sm text-muted">{event.excerpt}</p>}
         <div className="mt-auto flex flex-wrap gap-x-4 gap-y-1.5 pt-5 text-xs text-muted">
-          <span className="flex items-center gap-1.5"><Calendar className="size-3.5 text-brand-ink" />{formatTime(event.startsAt, timezone)}</span>
+          <span className="flex items-center gap-1.5"><Calendar className="size-3.5 text-brand-ink" />{multiDay ? `${formatDate(event.startsAt, timezone, { day: "numeric", month: "short" })} – ${formatDate(event.endsAt, timezone, { day: "numeric", month: "short" })}` : formatTime(event.startsAt, timezone)}</span>
           {(event.location || event.venueNote) && <span className="flex items-center gap-1.5"><MapPin className="size-3.5 text-brand-ink" />{event.venueNote || event.location?.name}</span>}
           {seatsLeft !== undefined && seatsLeft !== null && <span className="flex items-center gap-1.5"><Users className="size-3.5 text-brand-ink" />{seatsLeft > 0 ? `${seatsLeft} seats left` : "Full"}</span>}
         </div>

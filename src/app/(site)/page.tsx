@@ -10,32 +10,91 @@ import { siteUrl } from "@/server/settings";
 import { Img } from "@/components/ui/img";
 import { Button } from "@/components/ui/button";
 import { EmptyState } from "@/components/ui/misc";
-import { CoachCard, Container, EventCard, HeroBackdrop, PassCard, PlanCard, SectionHeading } from "@/components/site/cards";
+import { CoachCard, Container, EventCard, eventPriceText, HeroBackdrop, PassCard, PlanCard, SectionHeading } from "@/components/site/cards";
 import { CheckoutServiceButton } from "@/components/site/checkout-buttons";
 import { CountUp, Reveal } from "@/components/site/reveal";
 import { PuzzleSolver } from "@/components/chess/puzzle-solver";
+import { HeroEvents, type HeroEvent } from "@/components/site/hero-events";
+import { HeroSpotlight, type Spotlight } from "@/components/site/hero-spotlight";
+import { deadlineState, formEventInclude, sessionDates } from "@/server/event-registrations";
+import { formatDate, formatMoney, formatTime, humanize } from "@/lib/format";
 import { cn } from "@/lib/utils";
 
 export const dynamic = "force-dynamic";
 
 export default async function HomePage() {
   const now = new Date();
-  const [blocks, chrome, user, plans, events, coaches, gallery, testimonials, categories, passes] = await Promise.all([
+  const [blocks, chrome, user, plans, events, coaches, gallery, testimonials, categories, passes, heroEventRows, spotlightRow] = await Promise.all([
     getBlocks("home"),
     getSiteChrome(),
     currentUser(),
     prisma.membershipPlan.findMany({ where: { status: "ACTIVE" }, include: { features: { orderBy: { position: "asc" } } }, orderBy: [{ priority: "asc" }, { price: "asc" }] }),
-    prisma.event.findMany({ where: { status: "PUBLISHED", deletedAt: null, endsAt: { gte: now } }, include: { location: true }, orderBy: { startsAt: "asc" }, take: 3 }),
+    prisma.event.findMany({ where: { status: "PUBLISHED", deletedAt: null, archivedAt: null, endsAt: { gte: now } }, include: { location: true, packages: { select: { price: true } } }, orderBy: { startsAt: "asc" }, take: 3 }),
     prisma.coachProfile.findMany({ where: { isActive: true, user: { suspendedAt: null, deletedAt: null } }, include: { user: { select: { name: true } } }, orderBy: { position: "asc" }, take: 4 }),
     prisma.galleryImage.findMany({ where: { visible: true, deletedAt: null }, orderBy: [{ featured: "desc" }, { position: "asc" }], take: 7 }),
     prisma.testimonial.findMany({ where: { visible: true }, orderBy: { position: "asc" }, take: 6 }),
     prisma.learningCategory.findMany({ where: { visible: true }, orderBy: { position: "asc" }, include: { _count: { select: { materials: { where: publishedMaterialWhere() } } } } }),
     prisma.service.findMany({ where: { status: "ACTIVE" }, orderBy: { position: "asc" } }),
+    // Hero slider: events pinned with "Featured" first, then whatever is coming up next.
+    prisma.event.findMany({ where: { status: "PUBLISHED", deletedAt: null, archivedAt: null, endsAt: { gte: now } }, include: { location: true, packages: { select: { price: true } } }, orderBy: [{ featured: "desc" }, { startsAt: "asc" }], take: 6 }),
+    // Hero spotlight: the next featured event, shown above everything else.
+    prisma.event.findFirst({ where: { status: "PUBLISHED", featured: true, deletedAt: null, archivedAt: null, endsAt: { gte: now } }, include: formEventInclude, orderBy: { startsAt: "asc" } }),
   ]);
   const { settings, location } = chrome;
   const tz = settings.general.timezone;
   const puzzle = await puzzleOfTheDay(tz);
   const seats = await Promise.all(events.map(async (e) => (e.capacity === null ? null : Math.max(0, e.capacity - (await seatsTaken(e.id))))));
+  const baseUrl = await siteUrl();
+  const spotlight: Spotlight | null = spotlightRow
+    ? (() => {
+        const e = spotlightRow;
+        const nextDue = e.sessions.find((s) => s.paymentDeadline && s.endsAt >= now);
+        const dueState = nextDue ? deadlineState(nextDue.paymentDeadline, now) : "none";
+        const isForm = e.registrationMode === "FORM";
+        const prices = isForm ? e.packages.filter((p) => p.price.greaterThan(0)) : [];
+        return {
+          slug: e.slug,
+          title: e.title,
+          typeLabel: humanize(e.type),
+          excerpt: e.excerpt,
+          coverImage: e.coverImage,
+          startMonth: formatDate(e.startsAt, tz, { month: "short" }),
+          startDay: formatDate(e.startsAt, tz, { day: "numeric" }),
+          endMonth: formatDate(e.endsAt, tz, { month: "short" }),
+          endDay: formatDate(e.endsAt, tz, { day: "numeric" }),
+          dateRange: `${sessionDates(e, tz)} ${formatDate(e.endsAt, tz, { year: "numeric" })}`,
+          duration: e.sessions.length > 1 ? `${e.sessions.length} ${e.sessionLabel.toLowerCase()}s` : formatDate(e.startsAt, tz) === formatDate(e.endsAt, tz) ? `${formatTime(e.startsAt, tz)} – ${formatTime(e.endsAt, tz)}` : null,
+          venue: e.venueNote || e.location?.name || null,
+          packages: prices.length ? prices.map((p) => ({ name: p.name, price: formatMoney(p.price, e.currency) })) : Number(e.price) ? [{ name: "Entry", price: formatMoney(e.price, e.currency) }] : [],
+          unit: prices.length ? e.sessionLabel.toLowerCase() : "person",
+          deadline: nextDue?.paymentDeadline && dueState !== "passed" ? { text: `${nextDue.label} fees due by ${formatDate(nextDue.paymentDeadline, tz, { weekday: "short", day: "numeric", month: "short" })}${e.sessions.length > 1 ? ` — each ${e.sessionLabel.toLowerCase()} is paid before it starts.` : "."}`, urgent: dueState === "soon" } : e.registrationDeadline && e.registrationDeadline > now ? { text: `Registration closes ${formatDate(e.registrationDeadline, tz, { day: "numeric", month: "short" })}.`, urgent: false } : null,
+          ctaLabel: e.submitLabel || (isForm ? "Register now" : "View event & register"),
+          isForm,
+          shareUrl: `${baseUrl}/events/${e.slug}`,
+        };
+      })()
+    : null;
+  const heroEvents: HeroEvent[] = await Promise.all(
+    heroEventRows.filter((e) => e.id !== spotlightRow?.id).slice(0, 5).map(async (e) => {
+      const left = e.capacity === null ? null : Math.max(0, e.capacity - (await seatsTaken(e.id)));
+      const multiDay = formatDate(e.startsAt, tz) !== formatDate(e.endsAt, tz);
+      return {
+        id: e.id,
+        slug: e.slug,
+        title: e.title,
+        typeLabel: humanize(e.type),
+        excerpt: e.excerpt,
+        coverImage: e.coverImage,
+        month: formatDate(e.startsAt, tz, { month: "short" }),
+        day: formatDate(e.startsAt, tz, { day: "numeric" }),
+        when: multiDay ? `${formatDate(e.startsAt, tz, { day: "numeric", month: "short" })} – ${formatDate(e.endsAt, tz, { day: "numeric", month: "short" })}` : formatTime(e.startsAt, tz),
+        venue: e.venueNote || e.location?.name || null,
+        priceLabel: eventPriceText(e),
+        pinned: e.featured,
+        seatsLabel: left === null ? null : left > 0 ? `${left} seats left` : "Full",
+      };
+    }),
+  );
   const [puzzleCount, lessonCount, coachCount, solvedCount] = await Promise.all([
     prisma.puzzle.count({ where: { published: true } }),
     prisma.learningMaterial.count({ where: publishedMaterialWhere() }),
@@ -87,8 +146,13 @@ export default async function HomePage() {
             <span key={g} className="absolute animate-float font-display text-[120px] text-foreground/[0.045]" style={{ left: `${[8, 46, 78, 62][i]}%`, top: `${[62, 6, 70, 30][i]}%`, animationDelay: `${i * 1.3}s`, ["--r" as string]: `${[-12, 8, -6, 14][i]}deg` }}>{g}</span>
           ))}
         </div>
-        <Container className="relative grid items-center gap-14 pb-20 pt-12 lg:grid-cols-[1.15fr_1fr] lg:pb-28 lg:pt-20">
-          <div>
+        {spotlight && (
+          <Container className="relative pt-6 sm:pt-10">
+            <HeroSpotlight event={spotlight} />
+          </Container>
+        )}
+        <Container className={cn("relative grid items-center gap-14 pb-20 lg:grid-cols-[1.15fr_1fr] lg:pb-28", spotlight ? "pt-16 lg:pt-24" : "pt-12 lg:pt-20")}>
+          <div className="min-w-0">
             {hero?.eyebrow && <div className="eyebrow mb-6 flex animate-fade-up items-center gap-3"><span className="h-px w-8 bg-brand" />{hero.eyebrow}</div>}
             {hero ? (
               <h1 className="display animate-fade-up text-[clamp(3.6rem,11vw,8.2rem)] [animation-delay:80ms]">
@@ -147,6 +211,11 @@ export default async function HomePage() {
             )}
           </div>
         </Container>
+        {heroEvents.length > 0 && (
+          <Container className="relative pb-20 lg:-mt-6 lg:pb-28">
+            <HeroEvents events={heroEvents} />
+          </Container>
+        )}
       </section>
 
       {/* ── Pillars ──────────────────────────────────────────── */}

@@ -23,8 +23,9 @@ export function Badge({ className, variant, ...props }: React.ComponentProps<"sp
 const STATUS_VARIANT: Record<string, VariantProps<typeof badgeVariants>["variant"]> = {
   ACTIVE: "success", CONFIRMED: "success", SUCCESS: "success", PAID: "success", PUBLISHED: "success", ATTENDED: "success", VISIBLE: "success", RESOLVED: "success", REVIEWED: "success", SENT: "success",
   COMPLETED: "neutral", REDEEMED: "neutral", EXPIRED: "neutral", REFUNDED: "neutral", INACTIVE: "neutral", ARCHIVED: "neutral", DISMISSED: "neutral", DRAFT: "neutral", SKIPPED: "neutral",
+  DELIVERED: "success", READY_FOR_COLLECTION: "default", SHIPPED: "default", PENDING_PAYMENT: "warning", UNPUBLISHED: "neutral",
   PENDING: "warning", PROCESSING: "warning", OPEN: "warning", SUBMITTED: "warning", HIDDEN: "warning", QUEUED: "warning",
-  ASSIGNED: "default", IN_PROGRESS: "default",
+  ASSIGNED: "default", IN_PROGRESS: "default", PARTIALLY_PAID: "default", PARTIAL: "default",
   FAILED: "danger", CANCELLED: "danger", NO_SHOW: "danger", REMOVED: "danger",
 };
 

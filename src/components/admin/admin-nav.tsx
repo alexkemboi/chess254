@@ -3,18 +3,18 @@ import * as React from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Dialog as D } from "radix-ui";
-import { Circle, Menu, BadgeDollarSign, BarChart3, Bell, BookOpen, CalendarCheck, CalendarDays, ClipboardList, Clock, CreditCard, Crown, Flag, FolderTree, GraduationCap, HelpCircle, History, Images, Inbox, LayoutDashboard, LayoutTemplate, MapPin, Megaphone, Puzzle, Quote, Receipt, ScanLine, Search, Settings, Share2, ShieldCheck, Smartphone, Tags, Ticket, Users } from "lucide-react";
+import { Circle, Menu, BadgeDollarSign, BarChart3, Bell, BookOpen, CalendarCheck, CalendarDays, ClipboardList, Clock, CreditCard, Crown, Flag, FolderTree, GraduationCap, HelpCircle, History, Images, Package, Boxes, ShoppingBag, Truck, Percent, Palette, Inbox, LayoutDashboard, LayoutTemplate, MapPin, Megaphone, Puzzle, Quote, Receipt, ScanLine, Search, Settings, Share2, ShieldCheck, Smartphone, Tags, Ticket, Users } from "lucide-react";
 
 import { SheetContent } from "@/components/ui/dialog";
 import { cn } from "@/lib/utils";
 
-const ICONS: Record<string, React.ComponentType<{ className?: string }>> = { BadgeDollarSign, BarChart3, Bell, BookOpen, CalendarCheck, CalendarDays, ClipboardList, Clock, CreditCard, Crown, Flag, FolderTree, GraduationCap, HelpCircle, History, Images, Inbox, LayoutDashboard, LayoutTemplate, MapPin, Megaphone, Puzzle, Quote, Receipt, ScanLine, Search, Settings, Share2, ShieldCheck, Smartphone, Tags, Ticket, Users };
+const ICONS: Record<string, React.ComponentType<{ className?: string }>> = { Package, Boxes, ShoppingBag, Truck, Percent, Palette, BadgeDollarSign, BarChart3, Bell, BookOpen, CalendarCheck, CalendarDays, ClipboardList, Clock, CreditCard, Crown, Flag, FolderTree, GraduationCap, HelpCircle, History, Images, Inbox, LayoutDashboard, LayoutTemplate, MapPin, Megaphone, Puzzle, Quote, Receipt, ScanLine, Search, Settings, Share2, ShieldCheck, Smartphone, Tags, Ticket, Users };
 
 type Group = { label: string; items: { href: string; label: string; icon: string }[] };
 
 function NavList({ groups, onNavigate }: { groups: Group[]; onNavigate?: () => void }) {
   const pathname = usePathname();
-  const active = (href: string) => (href === "/admin" ? pathname === "/admin" : pathname === href || pathname.startsWith(`${href}/`));
+  const active = (href: string) => (href === "/admin" || href === "/admin/shop" ? pathname === href : pathname === href || pathname.startsWith(`${href}/`));
   return (
     <nav className="grid gap-6" aria-label="Admin">
       {groups.map((g) => (

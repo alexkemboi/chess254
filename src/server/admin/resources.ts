@@ -9,6 +9,12 @@ import { validatePuzzleLine } from "@/server/puzzles";
 import type { FieldDef, FormValues, Option } from "@/lib/fields";
 import { BILLING_PERIOD_LABELS, formatDate, formatMoney, humanize, WEEKDAYS } from "@/lib/format";
 import { decimalString, ensureSlug, f, toLocalInput } from "./fields";
+import { formEventProblems, syncSessionsAndPackages, type PackageRow, type SessionRow } from "./event-admin";
+import { currentUser } from "@/server/auth";
+import { can } from "@/server/rbac";
+import { zonedTimeToUtc } from "@/lib/time";
+import { SHOP_RESOURCES } from "./shop-resources";
+import { FORM_FIELD_ROLE_LABELS, FORM_FIELD_ROLES, FORM_FIELD_TYPE_LABELS, FORM_FIELD_TYPES, formFieldSchema, parseFormFields, type EventFormField } from "@/lib/event-form";
 
 export type Cell = string | { text: string; badge?: boolean; mono?: boolean; image?: string; muted?: boolean };
 export type ListRow = { id: string; cells: Cell[] };
@@ -330,37 +336,101 @@ const services: Resource = {
 
 // ─── Events ───────────────────────────────────────────────────────────────
 const EVENT_TYPES = ["TOURNAMENT", "RAPID_TOURNAMENT", "BLITZ_TOURNAMENT", "TRAINING_CAMP", "HANGOUT", "KIDS_SESSION", "EXHIBITION", "COMMUNITY"] as const;
+const EVENT_STATUSES = ["DRAFT", "PUBLISHED", "CANCELLED", "COMPLETED"] as const;
+const splitOptions = (v: unknown) => String(v ?? "").split(/[;\n]/).map((o) => o.trim()).filter(Boolean);
 const events: Resource = {
   key: "events",
   title: "Events",
   singular: "event",
   group: "Events",
   permission: "events.manage",
-  description: "Tournaments, hangouts and camps. Capacity is enforced at registration.",
+  description: "Tournaments, camps, workshops and hangouts. Each published event gets its own public page and registration form.",
   columns: ["Event", "Date", "Price", "Registrations", "Status"],
   async fields() {
     return [
       { name: "title", label: "Title", type: "text", required: true },
-      { name: "slug", label: "Slug", type: "slug" },
+      { name: "slug", label: "Slug", type: "slug", help: "Public page: /events/<slug>. Blank = from the title." },
       { name: "type", label: "Type", type: "select", options: STATUS_OPTIONS([...EVENT_TYPES]) },
-      { name: "status", label: "Status", type: "select", options: STATUS_OPTIONS(["DRAFT", "PUBLISHED", "CANCELLED", "COMPLETED"]) },
+      { name: "status", label: "Status", type: "select", options: STATUS_OPTIONS([...EVENT_STATUSES]), help: "Publishing needs the “Publish events” permission." },
       { name: "excerpt", label: "Short summary", type: "text", span: 2 },
       { name: "description", label: "Description", type: "markdown", required: true, span: 2 },
       { name: "coverImage", label: "Cover image", type: "image", span: 2 },
-      { name: "startsAt", label: "Starts", type: "datetime", required: true, section: "Schedule & venue" },
-      { name: "endsAt", label: "Ends", type: "datetime", required: true },
+      { name: "startsAt", label: "Starts", type: "datetime", required: true, section: "Schedule & venue", help: "With sessions, the first session's start is used." },
+      { name: "endsAt", label: "Ends", type: "datetime", required: true, help: "With sessions, the last session's end is used." },
       { name: "locationId", label: "Location", type: "select", options: [{ value: "", label: "—" }, ...(await locationOptions())] },
-      { name: "venueNote", label: "Venue note", type: "text", placeholder: "e.g. Main hall" },
-      { name: "capacity", label: "Capacity", type: "number", help: "Blank = unlimited", section: "Registration" },
+      { name: "venueNote", label: "Venue", type: "text", placeholder: "e.g. TRM Mall, Nairobi" },
+      {
+        name: "registrationMode",
+        label: "Registration type",
+        type: "select",
+        section: "Registration",
+        options: [
+          { value: "ACCOUNT", label: "Members sign in and take a seat" },
+          { value: "FORM", label: "Public registration form (custom fields, sessions & packages)" },
+        ],
+        span: 2,
+      },
+      { name: "capacity", label: "Capacity", type: "number", help: "Blank = unlimited (total registrations)" },
       { name: "registrationDeadline", label: "Registration deadline", type: "datetime" },
-      { name: "price", label: "Price", type: "money", help: "0 = free" },
+      { name: "price", label: "Price", type: "money", help: "Single-seat events. 0 = free. Form events with packages use package prices." },
       { name: "memberPrice", label: "Member price", type: "money", help: "Optional discounted price for active members" },
       { name: "currency", label: "Currency", type: "text" },
       { name: "registrationOpen", label: "Registration open", type: "switch" },
+      { name: "onlinePayment", label: "Accept M-Pesa online", type: "switch" },
+      { name: "sessionLabel", label: "Session name", type: "text", placeholder: "Week", section: "Sessions & packages", help: "What one bookable part is called (Week, Day, Class…)." },
+      { name: "minSessions", label: "Minimum sessions per registration", type: "number" },
+      {
+        name: "sessions",
+        label: "Sessions",
+        type: "repeater",
+        help: "Each session is booked separately with its own payment deadline. Leave empty for single-date events.",
+        fields: [
+          { name: "label", label: "Label", type: "text" },
+          { name: "startsAt", label: "Starts", type: "datetime" },
+          { name: "endsAt", label: "Ends", type: "datetime" },
+          { name: "paymentDeadline", label: "Pay by", type: "datetime" },
+          { name: "capacity", label: "Places", type: "number" },
+        ],
+      },
+      {
+        name: "packages",
+        label: "Packages",
+        type: "repeater",
+        help: "Priced options chosen for each session (e.g. Half Day / Full Day). “Not attending” is always offered.",
+        fields: [
+          { name: "name", label: "Name", type: "text" },
+          { name: "price", label: "Price per session", type: "money" },
+          { name: "description", label: "Description", type: "text" },
+        ],
+      },
+      { name: "registrationIntro", label: "Form introduction", type: "markdown", span: 2, section: "Registration form" },
+      { name: "eligibility", label: "Eligibility / who can join", type: "textarea", span: 2 },
+      {
+        name: "formFields",
+        label: "Form fields",
+        type: "repeater",
+        help: "Shown in order. “Step” splits the form into pages (blank = same step as the row above); the last page always shows the booking review. Options are separated with ; — “Show if” uses key=Value (e.g. paid_already=Yes). Mark health questions as sensitive. Contact name and email roles are required.",
+        fields: [
+          { name: "label", label: "Question", type: "text" },
+          { name: "key", label: "Key", type: "text" },
+          { name: "type", label: "Type", type: "select", options: FORM_FIELD_TYPES.map((t) => ({ value: t, label: FORM_FIELD_TYPE_LABELS[t] })) },
+          { name: "required", label: "Required", type: "switch" },
+          { name: "options", label: "Options", type: "text" },
+          { name: "step", label: "Step", type: "text" },
+          { name: "section", label: "Section", type: "text" },
+          { name: "help", label: "Help text", type: "text" },
+          { name: "showIf", label: "Show if", type: "text" },
+          { name: "role", label: "Saves as", type: "select", options: FORM_FIELD_ROLES.map((r) => ({ value: r, label: FORM_FIELD_ROLE_LABELS[r] })) },
+          { name: "sensitive", label: "Sensitive", type: "switch" },
+        ],
+      },
+      { name: "submitLabel", label: "Submit button label", type: "text", placeholder: "Register" },
+      { name: "confirmationMessage", label: "Confirmation message", type: "markdown", span: 2, help: "Shown after submitting and included in the confirmation email." },
+      { name: "paymentInstructions", label: "Payment instructions", type: "markdown", span: 2, help: "Paybill / bank details for paying outside the website." },
       { name: "timeControl", label: "Time control", type: "text", placeholder: "e.g. 10+5", section: "Tournament details" },
       { name: "format", label: "Format", type: "text", placeholder: "e.g. 7-round Swiss" },
       { name: "prizeInfo", label: "Prizes", type: "textarea", span: 2 },
-      { name: "featured", label: "Featured", type: "switch" },
+      { name: "featured", label: "Feature in the homepage hero", type: "switch", section: "Promotion", help: "The earliest featured event is the large hero spotlight." },
       { name: "seoTitle", label: "SEO title", type: "text", section: "SEO" },
       { name: "seoDescription", label: "SEO description", type: "textarea", span: 2 },
     ];
@@ -368,25 +438,44 @@ const events: Resource = {
   async list(q, page) {
     const where: Prisma.EventWhereInput = { deletedAt: null, ...(q ? { title: ci(q) } : {}) };
     const [rows, total, tz] = await Promise.all([
-      prisma.event.findMany({ where, orderBy: { startsAt: "desc" }, ...skip(page), include: { _count: { select: { registrations: { where: { status: { in: ["CONFIRMED", "ATTENDED"] } } } } } } }),
+      prisma.event.findMany({ where, orderBy: [{ archivedAt: { sort: "desc", nulls: "first" } }, { startsAt: "desc" }], ...skip(page), include: { packages: true, _count: { select: { registrations: { where: { status: { in: ["PENDING", "CONFIRMED", "ATTENDED"] } } } } } } }),
       prisma.event.count({ where }),
       getAllSettings().then((s) => s.general.timezone),
     ]);
-    return { total, rows: rows.map((e) => ({ id: e.id, cells: [e.title, formatDate(e.startsAt, tz), { text: e.price.greaterThan(0) ? formatMoney(e.price, e.currency) : "Free", mono: true }, `${e._count.registrations}${e.capacity ? ` / ${e.capacity}` : ""}`, { text: e.status, badge: true }] })) };
+    return {
+      total,
+      rows: rows.map((e) => {
+        const prices = e.packages.map((p) => p.price);
+        const price = e.registrationMode === "FORM" && prices.length ? `${formatMoney(prices.reduce((a, b) => (b.lessThan(a) ? b : a)), e.currency)}+ / ${e.sessionLabel.toLowerCase()}` : e.price.greaterThan(0) ? formatMoney(e.price, e.currency) : "Free";
+        return { id: e.id, cells: [e.title, formatDate(e.startsAt, tz), { text: price, mono: true }, `${e._count.registrations}${e.capacity ? ` / ${e.capacity}` : ""}`, { text: e.archivedAt ? "ARCHIVED" : e.status, badge: true }] };
+      }),
+    };
   },
-  defaults: async (ctx) => ({ type: "TOURNAMENT", status: "DRAFT", price: "0", currency: ctx.currency, registrationOpen: true }),
+  defaults: async (ctx) => ({ type: "TOURNAMENT", status: "DRAFT", price: "0", currency: ctx.currency, registrationOpen: true, onlinePayment: true, registrationMode: "ACCOUNT", sessionLabel: "Session", minSessions: 1, sessions: [], packages: [], formFields: [] }),
   async load(id, ctx) {
-    const e = await prisma.event.findFirst({ where: { id, deletedAt: null } });
+    const e = await prisma.event.findFirst({ where: { id, deletedAt: null }, include: { sessions: { orderBy: { position: "asc" } }, packages: { orderBy: { position: "asc" } } } });
     if (!e) return null;
-    return { ...e, price: decimalString(e.price), memberPrice: decimalString(e.memberPrice), startsAt: toLocalInput(e.startsAt, ctx.tz), endsAt: toLocalInput(e.endsAt, ctx.tz), registrationDeadline: toLocalInput(e.registrationDeadline, ctx.tz), capacity: e.capacity ?? "" };
+    return {
+      ...e,
+      price: decimalString(e.price),
+      memberPrice: decimalString(e.memberPrice),
+      startsAt: toLocalInput(e.startsAt, ctx.tz),
+      endsAt: toLocalInput(e.endsAt, ctx.tz),
+      registrationDeadline: toLocalInput(e.registrationDeadline, ctx.tz),
+      capacity: e.capacity ?? "",
+      sessions: e.sessions.map((s) => ({ id: s.id, label: s.label, startsAt: toLocalInput(s.startsAt, ctx.tz), endsAt: toLocalInput(s.endsAt, ctx.tz), paymentDeadline: toLocalInput(s.paymentDeadline, ctx.tz), capacity: s.capacity === null ? "" : String(s.capacity) })),
+      packages: e.packages.map((p) => ({ id: p.id, name: p.name, price: decimalString(p.price), description: p.description ?? "" })),
+      formFields: parseFormFields(e.formFields).map((f) => ({ ...f, options: f.options.join("; ") })),
+    };
   },
-  schema: (ctx) =>
-    z
+  schema: (ctx) => {
+    const cell = z.union([z.string(), z.number()]).optional().transform((v) => (v === undefined ? "" : String(v)));
+    return z
       .object({
         title: f.text(160),
         slug: f.slug(),
         type: f.enumOf(EVENT_TYPES),
-        status: f.enumOf(["DRAFT", "PUBLISHED", "CANCELLED", "COMPLETED"]),
+        status: f.enumOf(EVENT_STATUSES),
         excerpt: f.optText(300),
         description: f.text(20000),
         coverImage: f.url(),
@@ -394,12 +483,50 @@ const events: Resource = {
         endsAt: f.datetime(ctx.tz),
         locationId: f.optId(),
         venueNote: f.optText(160),
+        registrationMode: f.enumOf(["ACCOUNT", "FORM"]),
         capacity: f.optInt(1, 100000),
         registrationDeadline: f.optDatetime(ctx.tz),
         price: f.money(),
         memberPrice: f.optMoney(),
         currency: z.string().trim().length(3).toUpperCase(),
         registrationOpen: f.bool(),
+        onlinePayment: f.bool(),
+        sessionLabel: z.string().trim().max(30).optional().transform((v) => v || "Session"),
+        minSessions: f.int(0, 100),
+        sessions: f.json(
+          z.object({ id: z.string().max(40).optional(), label: z.string().trim().min(1, "Every session needs a label").max(80), startsAt: cell, endsAt: cell, paymentDeadline: cell, capacity: cell }).transform((s, c) => {
+            const at = (v: string) => (/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}/.test(v) ? zonedTimeToUtc(v.slice(0, 10), v.slice(11, 16), ctx.tz) : null);
+            const startsAt = at(s.startsAt);
+            const endsAt = at(s.endsAt);
+            if (!startsAt || !endsAt || endsAt <= startsAt) {
+              c.addIssue({ code: "custom", message: `${s.label}: set a start and an end after it` });
+              return z.NEVER;
+            }
+            const capacity = s.capacity.trim() ? Number(s.capacity) : null;
+            if (capacity !== null && (!Number.isInteger(capacity) || capacity < 1)) {
+              c.addIssue({ code: "custom", message: `${s.label}: places must be a whole number` });
+              return z.NEVER;
+            }
+            return { id: s.id || undefined, label: s.label, startsAt, endsAt, paymentDeadline: at(s.paymentDeadline), capacity };
+          }),
+        ),
+        packages: f.json(
+          z.object({ id: z.string().max(40).optional(), name: z.string().trim().min(1, "Every package needs a name").max(80), price: z.coerce.number({ message: "Package prices must be numbers" }).min(0).max(10_000_000), description: z.string().trim().max(200).optional().transform((v) => v || null) }).transform((p) => ({ ...p, id: p.id || undefined })),
+        ),
+        registrationIntro: f.optText(8000),
+        eligibility: f.optText(2000),
+        formFields: f.json(z.record(z.string(), z.unknown()).transform((row): Record<string, unknown> => ({ ...row, options: splitOptions(row.options) }))).transform((rows, c) => {
+          const bad = rows.find((r) => !formFieldSchema.safeParse(r).success);
+          if (bad) {
+            const issue = formFieldSchema.safeParse(bad).error?.issues[0];
+            c.addIssue({ code: "custom", message: `Form field “${String(bad.label ?? "")}”: ${issue?.message ?? "invalid"}` });
+            return z.NEVER;
+          }
+          return parseFormFields(rows);
+        }),
+        submitLabel: f.optText(60),
+        confirmationMessage: f.optText(4000),
+        paymentInstructions: f.optText(4000),
         timeControl: f.optText(60),
         format: f.optText(120),
         prizeInfo: f.optText(4000),
@@ -407,17 +534,37 @@ const events: Resource = {
         seoTitle: f.optText(160),
         seoDescription: f.optText(300),
       })
-      .refine((d) => d.endsAt > d.startsAt, { message: "The event must end after it starts", path: ["endsAt"] }),
+      .refine((d) => d.endsAt > d.startsAt || d.sessions.length > 0, { message: "The event must end after it starts", path: ["endsAt"] });
+  },
   async save(id, raw) {
-    const data = { ...raw, slug: ensureSlug(String(raw.slug), String(raw.title)) } as Prisma.EventUncheckedCreateInput;
+    const { sessions, packages, formFields, ...rest } = raw as { sessions: SessionRow[]; packages: PackageRow[]; formFields: EventFormField[] } & Record<string, unknown>;
+    const data = { ...rest, slug: ensureSlug(String(rest.slug), String(rest.title)), formFields: formFields as unknown as Prisma.InputJsonValue } as Prisma.EventUncheckedCreateInput;
+    if (sessions.length) {
+      data.startsAt = new Date(Math.min(...sessions.map((s) => s.startsAt.getTime())));
+      data.endsAt = new Date(Math.max(...sessions.map((s) => s.endsAt.getTime())));
+    }
+    if (data.registrationMode === "FORM" && packages.length) data.price = Math.min(...packages.map((p) => p.price));
+    const problems = formEventProblems({ registrationMode: String(data.registrationMode), formFields, sessions, packages });
+    if (problems.length) throw new UserError(`Can't save yet: ${problems.join("; ")}.`);
+
+    const previous = id ? await prisma.event.findUnique({ where: { id }, select: { status: true } }) : null;
+    const statusChanged = (previous?.status ?? "DRAFT") !== data.status;
+    if (statusChanged) {
+      const user = await currentUser();
+      if (!(await can(user?.role, "events.publish"))) throw new UserError("You don't have permission to publish, cancel or complete events. Save it as a draft instead.", { status: "Needs the publish permission" });
+    }
     if (id && data.capacity) {
       const taken = await prisma.eventRegistration.count({ where: { eventId: id, status: { in: ["CONFIRMED", "ATTENDED"] } } });
       if (taken > (data.capacity as number)) throw new UserError(`Capacity can't be lower than the ${taken} confirmed registrations.`, { capacity: `At least ${taken}` });
     }
-    return (id ? await prisma.event.update({ where: { id }, data }) : await prisma.event.create({ data })).id;
+    return prisma.$transaction(async (tx) => {
+      const event = id ? await tx.event.update({ where: { id }, data }) : await tx.event.create({ data });
+      await syncSessionsAndPackages(tx, event.id, sessions, packages);
+      return event.id;
+    });
   },
   async remove(id) {
-    await prisma.event.update({ where: { id }, data: { deletedAt: new Date(), status: "CANCELLED" } });
+    await prisma.event.update({ where: { id }, data: { deletedAt: new Date(), status: "CANCELLED", featured: false } });
     return "archived";
   },
   removeLabel: "Delete event",
@@ -1077,7 +1224,7 @@ const coaches: Resource = {
 };
 
 export const RESOURCES: Record<string, Resource> = Object.fromEntries(
-  [plans, sessionTypes, services, coaches, events, learningCategories, materials, puzzles, gallery, galleryCategories, contentBlocks, announcements, testimonials, faqs, socialLinks, seoEntries, locations].map((r) => [r.key, r]),
+  [plans, sessionTypes, services, coaches, events, learningCategories, materials, puzzles, gallery, galleryCategories, contentBlocks, announcements, testimonials, faqs, socialLinks, seoEntries, locations, ...SHOP_RESOURCES].map((r) => [r.key, r]),
 );
 
 export async function resourceContext(): Promise<Ctx> {

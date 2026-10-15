@@ -3,6 +3,7 @@ import { Prisma, type BillingPeriod, type OrderItemType } from "@prisma/client";
 import { prisma, type Tx } from "@/server/db";
 import { getSettings } from "@/server/settings";
 import { randomToken } from "@/server/crypto";
+import { releaseShopOrder } from "@/server/shop/lifecycle";
 
 export async function nextCounter(key: string, tx: Tx | typeof prisma = prisma) {
   const rows = await tx.$queryRaw<{ value: number }[]>`
@@ -55,6 +56,7 @@ export type OrderLine = {
   bookingId?: string;
   eventId?: string;
   eventRegistrationId?: string;
+  eventRegistrationItemId?: string;
   serviceId?: string;
   servicePurchaseId?: string;
 };
@@ -101,6 +103,7 @@ export async function createOrder(tx: Tx, input: { userId: string; currency: str
           bookingId: l.bookingId,
           eventId: l.eventId,
           eventRegistrationId: l.eventRegistrationId,
+          eventRegistrationItemId: l.eventRegistrationItemId,
           serviceId: l.serviceId,
           servicePurchaseId: l.servicePurchaseId,
         })),
@@ -112,6 +115,7 @@ export async function createOrder(tx: Tx, input: { userId: string; currency: str
 /** Releases holds attached to an order that will never be paid. */
 export async function releaseOrderHolds(tx: Tx, orderId: string, reason: "EXPIRED" | "CANCELLED") {
   const items = await tx.orderItem.findMany({ where: { orderId, fulfilledAt: null } });
+  if (items.some((i) => i.type === "MERCHANDISE")) await releaseShopOrder(tx, orderId, reason);
   for (const item of items) {
     if (item.bookingId) {
       const { count } = await tx.booking.updateMany({ where: { id: item.bookingId, status: "PENDING" }, data: { status: reason === "EXPIRED" ? "EXPIRED" : "CANCELLED", holdExpiresAt: null, cancelledAt: reason === "CANCELLED" ? new Date() : undefined } });

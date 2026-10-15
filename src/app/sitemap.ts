@@ -2,15 +2,17 @@ import type { MetadataRoute } from "next";
 import { prisma } from "@/server/db";
 import { siteUrl } from "@/server/settings";
 import { publishedMaterialWhere } from "@/server/learning";
+import { publicProductWhere } from "@/server/shop/catalog";
 
 export const dynamic = "force-dynamic";
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const base = await siteUrl();
   const noindex = new Set((await prisma.seoEntry.findMany({ where: { noindex: true }, select: { path: true } })).map((s) => s.path));
-  const [plans, events, materials, coaches, puzzles, posts] = await Promise.all([
+  const [products, plans, events, materials, coaches, puzzles, posts] = await Promise.all([
+    prisma.product.findMany({ where: publicProductWhere(), select: { slug: true, updatedAt: true } }),
     prisma.membershipPlan.findMany({ where: { status: "ACTIVE" }, select: { slug: true, updatedAt: true } }),
-    prisma.event.findMany({ where: { deletedAt: null, status: { in: ["PUBLISHED", "COMPLETED"] } }, select: { slug: true, updatedAt: true } }),
+    prisma.event.findMany({ where: { deletedAt: null, archivedAt: null, status: { in: ["PUBLISHED", "COMPLETED"] } }, select: { slug: true, updatedAt: true } }),
     prisma.learningMaterial.findMany({ where: publishedMaterialWhere(), select: { slug: true, updatedAt: true } }),
     prisma.coachProfile.findMany({ where: { isActive: true }, select: { slug: true, updatedAt: true } }),
     prisma.puzzle.findMany({ where: { published: true }, select: { id: true, updatedAt: true } }),
@@ -20,6 +22,8 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const entries: MetadataRoute.Sitemap = [
     ...statics.map((p) => ({ url: `${base}${p}`, changeFrequency: "weekly" as const, priority: p === "/" ? 1 : 0.8 })),
     ...plans.map((p) => ({ url: `${base}/join/${p.slug}`, lastModified: p.updatedAt })),
+    ...(products.length ? [{ url: `${base}/shop`, changeFrequency: "weekly" as const, priority: 0.8 }] : []),
+    ...products.map((p) => ({ url: `${base}/shop/${p.slug}`, lastModified: p.updatedAt, priority: 0.7 })),
     ...events.map((e) => ({ url: `${base}/events/${e.slug}`, lastModified: e.updatedAt, priority: 0.7 })),
     ...materials.map((m) => ({ url: `${base}/learn/${m.slug}`, lastModified: m.updatedAt, priority: 0.6 })),
     ...coaches.map((c) => ({ url: `${base}/coaches/${c.slug}`, lastModified: c.updatedAt, priority: 0.6 })),

@@ -27,6 +27,17 @@ const GROUPS: NavGroup[] = [
     { href: "/admin/manage/events", label: "Events", permission: "events.manage", icon: "CalendarDays" },
     { href: "/admin/registrations", label: "Registrations", permission: "events.manage", icon: "ClipboardList" },
   ] },
+  { label: "Shop", items: [
+    { href: "/admin/shop", label: "Shop overview", permission: "shop.orders", icon: "ShoppingBag" },
+    { href: "/admin/shop/orders", label: "Orders", permission: "shop.orders", icon: "Package" },
+    { href: "/admin/manage/products", label: "Products", permission: "shop.products", icon: "Tags" },
+    { href: "/admin/manage/product-categories", label: "Categories", permission: "shop.products", icon: "FolderTree" },
+    { href: "/admin/manage/product-attributes", label: "Attributes & sizes", permission: "shop.products", icon: "Palette" },
+    { href: "/admin/shop/inventory", label: "Inventory", permission: "shop.inventory", icon: "Boxes" },
+    { href: "/admin/manage/delivery-options", label: "Delivery & pick-up", permission: "shop.products", icon: "Truck" },
+    { href: "/admin/manage/discount-codes", label: "Discount codes", permission: "shop.products", icon: "Percent" },
+    { href: "/admin/shop/reports", label: "Shop reports", permission: "reports.view", icon: "BarChart3" },
+  ] },
   { label: "Learning", items: [
     { href: "/admin/manage/materials", label: "Materials", permission: "learning.manage", icon: "BookOpen" },
     { href: "/admin/manage/learning-categories", label: "Categories", permission: "learning.manage", icon: "FolderTree" },

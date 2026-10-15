@@ -9,6 +9,8 @@ import bcrypt from "bcryptjs";
 import { Chess } from "chess.js";
 import { PrismaClient, type Prisma } from "@prisma/client";
 import { PERMISSION_CATALOGUE } from "../src/lib/permissions";
+import { seedEvents } from "./seed-events";
+import { seedShop } from "./seed-shop";
 
 const prisma = new PrismaClient();
 
@@ -420,6 +422,8 @@ async function main() {
 }
 
 main()
+  .then(() => seedEvents(prisma))
+  .then(() => seedShop(prisma))
   .then(() => console.log("Seed complete."))
   .catch((e) => {
     console.error(e);

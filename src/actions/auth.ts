@@ -19,6 +19,7 @@ import { rateLimit } from "@/server/rate-limit";
 import { clientIp, audit } from "@/server/audit";
 import { notify, sendEmail } from "@/server/notifications";
 import { siteUrl, getSettings } from "@/server/settings";
+import { hasPaidOrder, isPendingAccount, sendAccountSetupEmail } from "@/server/account-setup";
 
 const email = z.string().trim().toLowerCase().email("Enter a valid email address").max(200);
 const password = z.string().max(200).refine(passwordPolicy.test, passwordPolicy.message);
@@ -51,7 +52,14 @@ export async function registerAction(formData: FormData): Promise<ActionResult> 
     const existing = await prisma.user.findUnique({ where: { email: data.email } });
     if (existing) {
       // Same response either way so the form cannot be used to discover accounts.
-      if (!existing.emailVerifiedAt) await sendVerification(existing.id, existing.email);
+      if (isPendingAccount(existing) && !existing.deletedAt) {
+        // Started a membership checkout without an account: paid → registration link; unpaid → becomes a free account.
+        if (await hasPaidOrder(existing.id)) await sendAccountSetupEmail(existing.id);
+        else {
+          await prisma.user.update({ where: { id: existing.id }, data: { name: data.name, phone: data.phone ?? existing.phone, passwordHash: await hashPassword(data.password) } });
+          await sendVerification(existing.id, existing.email);
+        }
+      } else if (!existing.emailVerifiedAt) await sendVerification(existing.id, existing.email);
       return { ok: true, message: "Check your inbox to confirm your email.", redirect: `/verify-email?sent=1&email=${encodeURIComponent(data.email)}` };
     }
     const user = await prisma.user.create({
@@ -96,7 +104,11 @@ export async function loginAction(formData: FormData): Promise<ActionResult> {
       throw new UserError("Too many sign-in attempts. Please wait 15 minutes.");
     }
     const user = await prisma.user.findUnique({ where: { email: data.email } });
-    const valid = await verifyPasswordOrDummy(data.password, user?.passwordHash);
+    if (user && isPendingAccount(user) && !user.deletedAt && (await hasPaidOrder(user.id))) {
+      await sendAccountSetupEmail(user.id);
+      throw new UserError("Your membership is paid — finish registering with the link we've just emailed you.");
+    }
+    const valid = await verifyPasswordOrDummy(data.password, user?.passwordHash || undefined);
     if (!user || !valid || user.deletedAt) throw new UserError("Incorrect email or password.");
     if (user.suspendedAt) throw new UserError("This account is suspended. Please contact the club.");
     if (!user.emailVerifiedAt) {

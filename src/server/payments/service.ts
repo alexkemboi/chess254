@@ -12,6 +12,10 @@ import { confirmPaidRegistration } from "@/server/events";
 import { fulfilService } from "@/server/services";
 import { alertAdmins, emailNotifications, notify } from "@/server/notifications";
 import { audit } from "@/server/audit";
+import { sendAccountSetupEmail } from "@/server/account-setup";
+import { fulfilRegistrationItems } from "@/server/event-registrations";
+import { afterShopPayment, fulfilShopOrder } from "@/server/shop/lifecycle";
+import { shopOrderPath } from "@/server/shop/links";
 import { formatMoney } from "@/lib/format";
 import { activeProvider, providerImplementation } from "./registry";
 import type { ProviderOutcome } from "./types";
@@ -159,6 +163,8 @@ export async function applyOutcome(paymentId: string, outcome: ProviderOutcome, 
           return { changed: false as const, status: payment.status, notificationIds: [] as string[] };
         }
         const notificationIds = await fulfilOrder(tx, payment.orderId, paymentId, timezone, refunds);
+        // Shop orders get their own itemised receipt (sent after commit to the checkout email).
+        if (payment.order.items.some((i) => i.type === "MERCHANDISE")) return { changed: true as const, status: "SUCCESS" as const, notificationIds };
         const n = await notify(
           { userId: payment.userId, type: "PAYMENT_CONFIRMED", title: "Payment received", body: `We received ${formatMoney(payment.amount, payment.currency)}${outcome.receiptNumber ? ` (M-Pesa ${outcome.receiptNumber})` : ""} for order ${payment.order.number}.`, link: `/dashboard/payments` },
           tx,
@@ -173,8 +179,9 @@ export async function applyOutcome(paymentId: string, outcome: ProviderOutcome, 
       });
       await tx.paymentTransaction.create({ data: { paymentId, kind: source, status, reference: outcome.resultCode, message: outcome.message, raw: outcome.raw as Prisma.InputJsonValue, actorId } });
       if (count === 0) return { changed: false as const, status: payment.status, notificationIds: [] as string[] };
+      const shopOrder = await tx.shopOrder.findUnique({ where: { orderId: payment.orderId }, select: { number: true } });
       const n = await notify(
-        { userId: payment.userId, type: "PAYMENT_FAILED", title: status === "CANCELLED" ? "Payment cancelled" : "Payment not completed", body: `${outcome.message ?? "The M-Pesa payment did not go through."} You can try again from your dashboard while the order is open.`, link: `/pay/${payment.orderId}` },
+        { userId: payment.userId, type: "PAYMENT_FAILED", title: status === "CANCELLED" ? "Payment cancelled" : "Payment not completed", body: `${outcome.message ?? "The M-Pesa payment did not go through."} ${shopOrder ? "Your items stay reserved for a short while — you can try again from your order page." : "You can try again from your dashboard while the order is open."}`, link: shopOrder ? shopOrderPath(shopOrder.number) : `/pay/${payment.orderId}` },
         tx,
       );
       return { changed: true as const, status, notificationIds: [n.id] };
@@ -183,6 +190,16 @@ export async function applyOutcome(paymentId: string, outcome: ProviderOutcome, 
   );
 
   if (result.notificationIds.length) await emailNotifications(result.notificationIds).catch((e) => console.error("[payments] email", e));
+  if (result.changed && result.status === "SUCCESS") {
+    // Pay-first sign-up: a pending account gets its "complete registration" link now
+    // (membership purchases only — event registrants use their booking link instead).
+    const paid = await prisma.payment.findUnique({ where: { id: paymentId }, select: { userId: true, order: { select: { items: { select: { type: true } } } } } });
+    if (paid?.order.items.some((i) => i.type === "MEMBERSHIP")) await sendAccountSetupEmail(paid.userId).catch((e) => console.error("[payments] setup email", e));
+    if (paid?.order.items.some((i) => i.type === "MERCHANDISE")) {
+      const row = await prisma.payment.findUnique({ where: { id: paymentId }, select: { orderId: true } });
+      if (row) await afterShopPayment(row.orderId).catch((e) => console.error("[payments] shop receipt", e));
+    }
+  }
   if ("mismatch" in result && result.mismatch) await alertAdmins("Payment amount mismatch", `Payment ${paymentId} reported a different amount than requested. Reconcile manually.`, `/admin/payments/${paymentId}`);
   for (const message of refunds) await alertAdmins("Refund required", message, `/admin/payments/${paymentId}`);
   return result;
@@ -195,6 +212,8 @@ async function fulfilOrder(tx: Tx, orderId: string, paymentId: string, timezone:
     await tx.invoice.create({ data: { number: await nextInvoiceNumber(tx), orderId, paymentId, subtotal: order.subtotal, tax: order.tax, total: order.total, currency: order.currency } });
   }
   const ids: string[] = [];
+  const eventItemIds: string[] = [];
+  if (order.items.some((i) => i.type === "MERCHANDISE" && !i.fulfilledAt)) await fulfilShopOrder(tx, orderId, paymentId, refunds);
   for (const item of order.items) {
     if (item.fulfilledAt) continue;
     let done = true;
@@ -217,12 +236,15 @@ async function fulfilOrder(tx: Tx, orderId: string, paymentId: string, timezone:
         refunds.push(`Order ${order.number}: ${item.description} — ${r.reason}.`);
         ids.push((await notify({ userId: order.userId, type: "PAYMENT_CONFIRMED", title: "Event full", body: `${item.description} filled up before your payment arrived. The club will refund you.`, link: "/dashboard/payments" }, tx)).id);
       }
+    } else if (item.type === "EVENT" && item.eventRegistrationItemId) {
+      eventItemIds.push(item.eventRegistrationItemId);
     } else if (item.type === "SERVICE" && item.servicePurchaseId) {
       const n = await fulfilService(tx, item.servicePurchaseId);
       if (n) ids.push(n.id);
     }
     if (done) await tx.orderItem.update({ where: { id: item.id }, data: { fulfilledAt: new Date() } });
   }
+  if (eventItemIds.length) ids.push(...(await fulfilRegistrationItems(tx, { userId: order.userId, itemIds: eventItemIds, paymentId, refunds, orderNumber: order.number })));
   return ids;
 }
 

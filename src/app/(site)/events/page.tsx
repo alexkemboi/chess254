@@ -28,12 +28,13 @@ export default async function EventsPage({ searchParams }: { searchParams: Promi
   const now = new Date();
   const where: Prisma.EventWhereInput = {
     deletedAt: null,
+    archivedAt: null,
     status: when === "past" ? { in: ["PUBLISHED", "COMPLETED"] } : "PUBLISHED",
     ...(when === "past" ? { endsAt: { lt: now } } : { endsAt: { gte: now } }),
     ...(type ? { type } : {}),
     ...(q ? { OR: [{ title: { contains: q, mode: "insensitive" } }, { description: { contains: q, mode: "insensitive" } }] } : {}),
   };
-  const events = await prisma.event.findMany({ where, include: { location: true }, orderBy: { startsAt: when === "past" ? "desc" : "asc" }, take: 60 });
+  const events = await prisma.event.findMany({ where, include: { location: true, packages: { select: { price: true } } }, orderBy: { startsAt: when === "past" ? "desc" : "asc" }, take: 60 });
   const seats = await Promise.all(events.map(async (e) => (e.capacity === null || when === "past" ? null : Math.max(0, e.capacity - (await seatsTaken(e.id))))));
   const link = (patch: Record<string, string | undefined>) => {
     const params = new URLSearchParams(Object.entries({ type, when: when === "past" ? "past" : undefined, q, ...patch }).filter(([, v]) => v) as [string, string][]);

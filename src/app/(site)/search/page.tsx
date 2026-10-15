@@ -16,7 +16,7 @@ export default async function SearchPage({ searchParams }: { searchParams: Promi
   const results = q.length >= 2
     ? await Promise.all([
         prisma.learningMaterial.findMany({ where: publishedMaterialWhere({ OR: [{ title: term }, { summary: term }] }), take: 6, select: { slug: true, title: true, type: true } }),
-        prisma.event.findMany({ where: { deletedAt: null, status: { in: ["PUBLISHED", "COMPLETED"] }, OR: [{ title: term }, { description: term }] }, take: 6, orderBy: { startsAt: "desc" }, select: { slug: true, title: true, startsAt: true } }),
+        prisma.event.findMany({ where: { deletedAt: null, archivedAt: null, status: { in: ["PUBLISHED", "COMPLETED"] }, OR: [{ title: term }, { description: term }] }, take: 6, orderBy: { startsAt: "desc" }, select: { slug: true, title: true, startsAt: true } }),
         prisma.communityPost.findMany({ where: { status: "VISIBLE", OR: [{ title: term }, { body: term }] }, take: 6, orderBy: { createdAt: "desc" }, select: { id: true, title: true, kind: true } }),
         prisma.coachProfile.findMany({ where: { isActive: true, OR: [{ user: { name: term } }, { headline: term }] }, take: 6, select: { slug: true, headline: true, user: { select: { name: true } } } }),
         prisma.galleryImage.findMany({ where: { visible: true, deletedAt: null, OR: [{ title: term }, { caption: term }] }, take: 6, select: { id: true, title: true } }),

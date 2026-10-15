@@ -6,7 +6,8 @@ import { NextResponse, type NextRequest } from "next/server";
  * path — every page, Server Action and route handler still verifies the session,
  * role and permissions on the server.
  */
-const PROTECTED = /^\/(admin|dashboard|coach|pay|join|invoices|community\/new)(\/|$)/;
+// /join is public: visitors pay first and their account is created afterwards.
+const PROTECTED = /^\/(admin|dashboard|coach|pay|invoices|community\/new)(\/|$)/;
 
 export function proxy(request: NextRequest) {
   const { pathname, search } = request.nextUrl;
@@ -20,5 +21,5 @@ export function proxy(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ["/admin/:path*", "/dashboard/:path*", "/coach/:path*", "/pay/:path*", "/join/:path*", "/invoices/:path*", "/community/new"],
+  matcher: ["/admin/:path*", "/dashboard/:path*", "/coach/:path*", "/pay/:path*", "/invoices/:path*", "/community/new"],
 };

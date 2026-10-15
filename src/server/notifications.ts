@@ -27,7 +27,8 @@ export type NotificationType =
   | "ASSIGNMENT_REVIEWED"
   | "COMMUNITY_REPLY"
   | "ANNOUNCEMENT"
-  | "ADMIN_ALERT";
+  | "ADMIN_ALERT"
+  | "SHOP_ORDER";
 
 export type OutboundMessage = { to: string; subject: string; text: string; html?: string };
 
@@ -89,7 +90,7 @@ function escapeHtml(value: string) {
   return value.replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]!);
 }
 
-async function renderEmail(title: string, body: string, link?: string | null, cta = "Open") {
+export async function renderEmail(title: string, body: string, link?: string | null, cta = "Open") {
   const settings = await getAllSettings();
   const base = await siteUrl();
   const url = link ? (link.startsWith("http") ? link : `${base}${link}`) : null;
